@@ -15,7 +15,7 @@ installCrashReporting((message) => send('error', { message }))
 
 const SAMPLE_RATE = 16000
 const PASS_INTERVAL_MS = 750
-/** Coarser diarization cadence: ~0.55 extra cores instead of ~1.2 (measured, see PLAN §3.2). */
+/** Coarser diarization cadence: ~0.55 extra cores instead of ~1.2 (measured on an M5 Pro). */
 const DIARIZATION_OPTIONS = { diarization_analyze_cadence: '3', diarization_cluster_cadence: '10' }
 const CLUSTER_WINDOW_SEC = 120
 

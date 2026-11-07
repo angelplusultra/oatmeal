@@ -1,6 +1,6 @@
 /**
  * Meeting notes pipeline. Pure logic; the LLM is injected so this runs against node-llama-cpp, an
- * OpenAI-compatible endpoint, or a fake in tests. See docs/PLAN.md §3.5.
+ * OpenAI-compatible endpoint, or a fake in tests.
  *
  * - Transcript fits in one chunk (most calls): ONE pass writes the notes directly, then VERIFY (code).
  *   Generation speed (~37 tok/s for Gemma 4 E4B on an M5 Pro) dominates, so one pass is ~2× faster.
@@ -29,7 +29,7 @@ export interface SummarizeProgress {
 }
 
 export interface SummarizeOptions {
-  /** Max transcript tokens per chunk. Tuned in Phase 0; see PLAN §3.5. */
+  /** Max transcript tokens per chunk. */
   chunkTokens?: number
   overlapTurns?: number
   onProgress?: (progress: SummarizeProgress) => void
