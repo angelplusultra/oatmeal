@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" fill="currentColor">
+  <!-- Menu bar glyph (18pt): bowl, spoon and steam. `npm run make-icons` renders it black as the
+       macOS template image and red for the recording state. -->
+  <path d="M1.75,9.25 H16.25 C16.25,12.9 13.4,15.5 9,15.5 C4.6,15.5 1.75,12.9 1.75,9.25 Z"/>
+  <rect x="6" y="14.5" width="6" height="2" rx="0.75"/>
+  <g fill="none" stroke="currentColor" stroke-linecap="round">
+    <path d="M6.6,8.3 L2.9,3.4" stroke-width="1.75"/>
+    <path d="M9.5,7.5 C8.4,6.6 8.4,5.6 9.5,4.75 C10.6,3.9 10.6,2.9 9.5,2" stroke-width="1.5"/>
+    <path d="M13,7.5 C11.9,6.6 11.9,5.6 13,4.75 C14.1,3.9 14.1,2.9 13,2" stroke-width="1.5"/>
+  </g>
+</svg>
