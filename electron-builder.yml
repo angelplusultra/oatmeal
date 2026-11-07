@@ -1,0 +1,54 @@
+appId: app.oatmeal.desktop
+productName: Oatmeal
+copyright: Copyright © 2026 Marcello Fitton
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - out/**
+  - package.json
+  # node-llama-cpp ships binaries per platform; keep only this platform's (see its Electron guide).
+  - '!node_modules/node-llama-cpp/bins/**/*'
+  - 'node_modules/node-llama-cpp/bins/${os}-${arch}*/**/*'
+  - '!node_modules/@node-llama-cpp/*/bins/**/*'
+  - 'node_modules/@node-llama-cpp/${os}-${arch}*/bins/**/*'
+  - '!node_modules/node-llama-cpp/llama/localBuilds/**/*'
+  - 'node_modules/node-llama-cpp/llama/localBuilds/${os}-${arch}*/**/*'
+
+# Native binaries cannot be loaded from inside the asar archive.
+asarUnpack:
+  - node_modules/node-llama-cpp/bins
+  - node_modules/node-llama-cpp/llama/localBuilds
+  - node_modules/@node-llama-cpp/*
+  - node_modules/koffi/**
+
+# The audio helper, the native Moonshine library and the tray icons live in Contents/Resources.
+extraResources:
+  - from: resources/bin
+    to: bin
+  - from: resources/moonshine/darwin-arm64
+    to: moonshine/darwin-arm64
+  - from: resources/tray
+    to: tray
+
+npmRebuild: false
+
+mac:
+  target:
+    - target: dmg
+      arch: arm64
+    - target: zip
+      arch: arm64
+  category: public.app-category.productivity
+  # libmoonshine.dylib from the moonshine-voice wheel targets macOS 15+.
+  minimumSystemVersion: '15.0'
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    NSMicrophoneUsageDescription: Oatmeal transcribes what you say during your calls. Audio is processed on this Mac and never saved or uploaded.
+    NSAudioCaptureUsageDescription: Oatmeal transcribes the other people on your calls. Audio is processed on this Mac and never saved or uploaded.
+
+dmg:
+  title: Oatmeal

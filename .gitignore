@@ -1,0 +1,10 @@
+node_modules/
+out/
+dist/
+resources/bin/
+resources/moonshine/
+native/macos/OatmealAudio/.build/
+*.log
+.DS_Store
+.env
+*.tsbuildinfo
