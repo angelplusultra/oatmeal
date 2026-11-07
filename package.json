@@ -18,7 +18,8 @@
     "dist:mac": "npm run build && electron-builder --mac --config electron-builder.yml",
     "postinstall": "electron-builder install-app-deps",
     "dist:mac:local": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dir --config electron-builder.yml -c.mac.identity=-",
-    "make-test-meeting": "node scripts/make-test-meeting.mjs"
+    "make-test-meeting": "node scripts/make-test-meeting.mjs",
+    "make-icons": "electron scripts/make-icons.mjs"
   },
   "dependencies": {
     "koffi": "^3.3.7",
