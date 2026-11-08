@@ -1,9 +1,12 @@
 {
   "name": "oatmeal",
   "productName": "Oatmeal",
-  "version": "0.1.0",
+  "version": "0.1.1-beta.0",
   "description": "Private, local meeting notes: detects calls, transcribes them on-device, and writes notes with a local LLM.",
-  "author": { "name": "Marcello Fitton", "email": "macfittondev@gmail.com" },
+  "author": {
+    "name": "Marcello Fitton",
+    "email": "macfittondev@gmail.com"
+  },
   "homepage": "https://github.com/angelplusultra/oatmeal",
   "desktopName": "oatmeal.desktop",
   "license": "MIT",
