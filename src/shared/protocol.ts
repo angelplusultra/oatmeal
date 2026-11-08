@@ -61,7 +61,7 @@ export interface AsrEvents {
 // ---------------------------------------------------------------- LLM worker
 
 export type LlmConfig =
-  | { provider: 'local'; modelId: LlmModelId; modelPath: string }
+  | { provider: 'local'; modelName: string; modelPath: string }
   | { provider: 'endpoint'; baseUrl: string; model: string; apiKey: string }
 
 export interface LlmRequests {

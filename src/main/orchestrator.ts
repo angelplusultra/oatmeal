@@ -11,11 +11,12 @@ import path from 'node:path'
 import type { OatmealEvents } from '@shared/api'
 import { callEndDecision } from '@shared/call-end'
 import { isEcho } from '@shared/echo'
-import { asrModel, llmModel } from '@shared/models'
+import { LLM_MODELS, asrModel, llmModel } from '@shared/models'
 import type { AsrEvents, AsrLine, AsrRequests, AudioSourceSpec, LlmConfig, LlmEvents, LlmRequests } from '@shared/protocol'
 import { buildTurns } from '@shared/transcript'
 import type {
   DownloadProgress,
+  FoundModel,
   Meeting,
   MeetingSummary,
   ModelKind,
@@ -28,6 +29,7 @@ import type {
 } from '@shared/types'
 import type { Store } from './db'
 import type { DetectedMeetingApp, MeetingDetector } from './detector'
+import { findModelFiles } from './find-models'
 import type { Paths } from './paths'
 import type { WorkerClient } from './worker-client'
 
@@ -419,7 +421,18 @@ export class Orchestrator {
   }
 
   private llmModelPath(settings: Settings): string {
-    return this.deps.llmModelOverride ?? path.join(this.deps.paths.models, 'llm', llmModel(settings.localModel).fileName)
+    return this.deps.llmModelOverride || settings.localModelPath || this.ownLlmPath(settings)
+  }
+
+  private ownLlmPath(settings: Settings): string {
+    return path.join(this.deps.paths.models, 'llm', llmModel(settings.localModel).fileName)
+  }
+
+  /** ponytail: scanned once per model per run; a model downloaded elsewhere meanwhile shows up after a restart. */
+  private foundModels = new Map<string, FoundModel[]>()
+  private findExisting(fileName: string): FoundModel[] {
+    if (!this.foundModels.has(fileName)) this.foundModels.set(fileName, findModelFiles(fileName))
+    return this.foundModels.get(fileName)!
   }
 
   private llmConfig(settings: Settings): LlmConfig | { error: string } {
@@ -428,8 +441,13 @@ export class Orchestrator {
       return { provider: 'endpoint', baseUrl: settings.endpointUrl, model: settings.endpointModel, apiKey: settings.endpointApiKey }
     }
     const modelPath = this.llmModelPath(settings)
-    if (!fs.existsSync(modelPath)) return { error: 'Download the notes model in Settings to generate notes.' }
-    return { provider: 'local', modelId: settings.localModel, modelPath }
+    if (!fs.existsSync(modelPath)) {
+      return { error: settings.localModelPath ? `The notes model file is missing (${modelPath}). Choose another in Settings.` : 'Download the notes model in Settings to generate notes.' }
+    }
+    // A Gemma we know keeps its display name; any other GGUF is named after its file.
+    const base = path.basename(modelPath)
+    const known = LLM_MODELS.find((m) => base === m.fileName || base.endsWith(`_${m.fileName}`))
+    return { provider: 'local', modelName: known?.name ?? base.replace(/\.gguf$/i, ''), modelPath }
   }
 
   private async writeNotes(meetingId: string): Promise<'ready' | 'failed' | 'empty' | null> {
@@ -501,9 +519,11 @@ export class Orchestrator {
       console.error('[asr] model-status failed', error)
     }
     const llmPath = this.llmModelPath(settings)
+    const installed = fs.existsSync(llmPath)
+    const found = installed || settings.localModelPath ? [] : this.findExisting(llmModel(settings.localModel).fileName)
     return {
       asr: { id: settings.asrModel, ...asr },
-      llm: { id: settings.localModel, installed: fs.existsSync(llmPath), path: llmPath },
+      llm: { id: settings.localModel, installed, path: llmPath, found },
       download: this.download,
     }
   }

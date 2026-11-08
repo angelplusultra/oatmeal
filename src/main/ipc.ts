@@ -124,6 +124,11 @@ export function registerIpc(deps: IpcDeps) {
     async cancelDownload() {
       await orchestrator.cancelDownload()
     },
+    async chooseModelFile() {
+      const options: Electron.OpenDialogOptions = { properties: ['openFile'], filters: [{ name: 'GGUF model', extensions: ['gguf'] }] }
+      const result = windows.main ? await dialog.showOpenDialog(windows.main, options) : await dialog.showOpenDialog(options)
+      return result.canceled ? null : (result.filePaths[0] ?? null)
+    },
     async getPermissions() {
       return getPermissions(deps.paths.helper)
     },

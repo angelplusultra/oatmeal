@@ -1,4 +1,4 @@
-import { CheckCircle2Icon, DownloadIcon, FolderOpenIcon, Loader2Icon, XIcon } from 'lucide-react'
+import { CheckCircle2Icon, DownloadIcon, FileIcon, FolderOpenIcon, Loader2Icon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ASR_MODELS, LLM_MODELS, asrModel, llmModel } from '@shared/models'
@@ -100,6 +100,61 @@ function PermissionRow({ kind, state, onRequest }: { kind: 'microphone' | 'syste
   )
 }
 
+/** Where the built-in notes model comes from: a GGUF on disk (found or chosen), or Oatmeal's own download. */
+function LocalModelSource({ settings, status, set }: { settings: Settings; status: ModelStatus | null; set: (p: Partial<Settings>) => void }) {
+  const llm = llmModel(settings.localModel)
+  const found = status?.llm.found[0]
+  const choose = () =>
+    void window.oatmeal
+      .chooseModelFile()
+      .then((file) => file && set({ localModelPath: file }))
+      .catch((e: Error) => toast.error(e.message))
+  const chooseButton = (
+    <Button size="sm" variant="ghost" onClick={choose}>
+      <FileIcon /> Use another GGUF…
+    </Button>
+  )
+
+  if (settings.localModelPath) {
+    return (
+      <Row
+        title="Model file"
+        description={
+          <>
+            <span className="break-all">{settings.localModelPath}</span>
+            {status && !status.llm.installed && <span className="block text-destructive">This file is missing.</span>}
+          </>
+        }
+      >
+        {chooseButton}
+        <Button size="sm" variant="outline" onClick={() => set({ localModelPath: '' })}>
+          Use Oatmeal's {llm.name}
+        </Button>
+      </Row>
+    )
+  }
+  if (found && !status?.llm.installed && status?.download?.kind !== 'llm') {
+    return (
+      <Row
+        title={`Found ${llm.name} from ${found.source}`}
+        description={<span className="break-all">{found.path}</span>}
+      >
+        {chooseButton}
+        <Button size="sm" onClick={() => set({ localModelPath: found.path })}>
+          Use this file
+        </Button>
+        <ModelDownload kind="llm" installed={false} sizeLabel={`(${formatBytes(llm.sizeBytes)})`} status={status} />
+      </Row>
+    )
+  }
+  return (
+    <Row title="" description={null}>
+      {chooseButton}
+      <ModelDownload kind="llm" installed={!!status?.llm.installed} sizeLabel={`(${formatBytes(llm.sizeBytes)})`} status={status} />
+    </Row>
+  )
+}
+
 function EndpointFields({ settings, update }: { settings: Settings; update: (p: Partial<Settings>) => void }) {
   const [draft, setDraft] = useState({ url: settings.endpointUrl, model: settings.endpointModel, key: settings.endpointApiKey })
   const commit = () => update({ endpointUrl: draft.url.trim(), endpointModel: draft.model.trim(), endpointApiKey: draft.key })
@@ -194,7 +249,7 @@ export function SettingsView() {
             {settings.llmProvider === 'local' ? (
               <>
                 <Row title="Model" description={llm.description}>
-                  <Select value={settings.localModel} onValueChange={(v) => set({ localModel: v as Settings['localModel'] })}>
+                  <Select value={settings.localModel} onValueChange={(v) => set({ localModel: v as Settings['localModel'], localModelPath: '' })}>
                     <SelectTrigger className="w-56">
                       <SelectValue />
                     </SelectTrigger>
@@ -207,9 +262,7 @@ export function SettingsView() {
                     </SelectContent>
                   </Select>
                 </Row>
-                <Row title="" description={null}>
-                  <ModelDownload kind="llm" installed={!!status?.llm.installed} sizeLabel={`(${formatBytes(llm.sizeBytes)})`} status={status} />
-                </Row>
+                <LocalModelSource settings={settings} status={status} set={set} />
               </>
             ) : (
               <EndpointFields settings={settings} update={set} />

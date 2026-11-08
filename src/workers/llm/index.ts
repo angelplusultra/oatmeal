@@ -32,7 +32,7 @@ async function clientFor(config: LlmConfig, jobId: string): Promise<LocalLlm | E
   if (config.provider === 'local') {
     if (!fs.existsSync(config.modelPath)) throw new Error('The notes model is not downloaded yet')
     send('progress', { jobId, stage: 'loading', done: 0, total: 1 })
-    client = LocalLlm.load(config.modelPath, llmModel(config.modelId).name)
+    client = LocalLlm.load(config.modelPath, config.modelName)
   } else {
     if (!config.baseUrl || !config.model) throw new Error('Set the endpoint URL and model name in Settings')
     client = Promise.resolve(new EndpointLlm(config.baseUrl, config.model, config.apiKey))

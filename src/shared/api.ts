@@ -49,6 +49,8 @@ export interface OatmealInvoke {
   getModelStatus(): Promise<ModelStatus>
   downloadModel(kind: ModelKind): Promise<void>
   cancelDownload(): Promise<void>
+  /** Opens a file picker for a GGUF; resolves to its path, or null if cancelled. */
+  chooseModelFile(): Promise<string | null>
   getPermissions(): Promise<PermissionStatus>
   requestPermission(kind: 'microphone' | 'systemAudio'): Promise<PermissionStatus>
   openPermissionSettings(kind: 'microphone' | 'systemAudio'): Promise<void>
@@ -78,6 +80,7 @@ export const INVOKE_METHODS = [
   'getModelStatus',
   'downloadModel',
   'cancelDownload',
+  'chooseModelFile',
   'getPermissions',
   'requestPermission',
   'openPermissionSettings',

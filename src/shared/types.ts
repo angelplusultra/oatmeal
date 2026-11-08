@@ -89,6 +89,8 @@ export interface Settings {
   separateSpeakers: boolean
   llmProvider: 'local' | 'endpoint'
   localModel: LlmModelId
+  /** A GGUF already on disk to use instead of Oatmeal's own download. Empty = Oatmeal's copy of `localModel`. */
+  localModelPath: string
   /** OpenAI-compatible endpoint (Ollama, LM Studio, llama-server…), used when llmProvider = 'endpoint'. */
   endpointUrl: string
   endpointModel: string
@@ -110,8 +112,14 @@ export type ModelKind = 'asr' | 'llm'
 
 export interface ModelStatus {
   asr: { id: AsrModelId; installed: boolean; diarizationInstalled: boolean }
-  llm: { id: LlmModelId; installed: boolean; path: string | null }
+  llm: { id: LlmModelId; installed: boolean; path: string | null; /** Copies of `id` other apps already downloaded. */ found: FoundModel[] }
   download: DownloadProgress | null
+}
+
+export interface FoundModel {
+  path: string
+  /** The app that downloaded it, e.g. "LM Studio". */
+  source: string
 }
 
 export interface DownloadProgress {
