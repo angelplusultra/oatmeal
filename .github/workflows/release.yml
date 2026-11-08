@@ -1,0 +1,80 @@
+name: Release
+
+# Push a tag like v0.2.0 (`npm version minor` does it) to build and publish a GitHub Release.
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-15
+            target: --mac
+          - os: ubuntu-24.04
+            target: --linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Tag matches package.json version
+        run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
+
+      # setup.mjs unpacks the Moonshine wheel with bsdtar on Linux.
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libarchive-tools
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: Package
+        env:
+          # Optional. Without CSC_LINK the macOS app is ad-hoc signed and not notarized.
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          args=(${{ matrix.target }} --config electron-builder.yml --publish never)
+          if [ "$RUNNER_OS" = macOS ] && [ -z "$CSC_LINK" ]; then
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+            args+=(-c.mac.identity=-)
+          fi
+          npx electron-builder "${args[@]}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ runner.os }}
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.AppImage
+            dist/*.pacman
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Tags with a pre-release suffix (v1.0.0-beta.1) publish as pre-releases.
+          pre=$([[ "$GITHUB_REF_NAME" == *-* ]] && echo --prerelease || true)
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --generate-notes $pre

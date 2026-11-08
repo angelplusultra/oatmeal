@@ -19,7 +19,9 @@ npm run dist:mac:local  # ad-hoc signed .app in dist/mac-arm64/ (needed to test 
 npm run dist:linux      # AppImage + Arch .pacman in dist/; dist:linux:dir for dist/linux-unpacked/
 ```
 
-No linter or formatter is configured. Typecheck and tests are the checks.
+No linter or formatter is configured. Typecheck and tests are the checks. `.github/workflows/ci.yml` runs both on pushes to main and on PRs.
+
+**Releases.** `package.json` `version` is the source of truth (semver; 0.x until the app is stable). `npm version patch|minor|major` (or `prerelease --preid beta`) commits, tags `vX.Y.Z` and pushes (`postversion`). The tag triggers `.github/workflows/release.yml`: it checks the tag matches `package.json`, builds the macOS (macos-15) and Linux (ubuntu) packages, and publishes a GitHub Release with generated notes; tags with a `-` suffix become pre-releases. The macOS app is ad-hoc signed unless the `CSC_LINK`/`CSC_KEY_PASSWORD` secrets are set, and notarized when `APPLE_ID`/`APPLE_APP_SPECIFIC_PASSWORD`/`APPLE_TEAM_ID` are too.
 
 `npm run setup` (`scripts/setup.mjs`) is idempotent. It puts `libmoonshine` + ONNX Runtime from the PyPI wheel (SHA-256 checked) into `resources/moonshine/<platform>/` (on Linux it needs `bsdtar`, since GNU tar can't read zips), and on macOS rebuilds `resources/bin/oatmeal-audio` with SwiftPM whenever `native/macos/OatmealAudio/Sources` is newer than the binary. Both outputs are gitignored. The app icon (`build/icon.png`) and the tray PNGs (`resources/tray/`) are committed. `npm run make-icons` renders them from `assets/icon.svg` and `assets/tray.svg`.
 
