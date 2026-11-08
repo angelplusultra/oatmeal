@@ -15,7 +15,8 @@ export interface AudioSource {
 }
 
 export function openSource(spec: AudioSourceSpec, cb: AudioSourceCallbacks): AudioSource {
-  return spec.kind === 'helper' ? new HelperSource(spec.helperPath, spec.excludePids, cb) : new FileSource(spec, cb)
+  if (spec.kind === 'files') return new FileSource(spec, cb)
+  return process.platform === 'linux' ? new PipeWireSource(cb) : new HelperSource(spec.helperPath, spec.excludePids, cb)
 }
 
 const CHANNELS: Record<number, Channel> = { 0: 'mic', 1: 'system' }
@@ -77,6 +78,55 @@ class HelperSource implements AudioSource {
     const timer = setTimeout(() => this.child.kill('SIGTERM'), 2000)
     await exited
     clearTimeout(timer)
+  }
+}
+
+/**
+ * Linux capture: one `pw-record` per channel, as raw 16 kHz mono s16. The system channel records the default
+ * output's monitor, i.e. everything playing (Oatmeal plays nothing, so nothing needs excluding). Neither
+ * stream names a target, so WirePlumber moves them when the default mic or output changes.
+ */
+class PipeWireSource implements AudioSource {
+  private readonly children: ChildProcess[] = []
+  private stopping = false
+
+  constructor(private readonly cb: AudioSourceCallbacks) {
+    this.record('mic', '')
+    this.record('system', 'stream.capture.sink = true')
+    cb.onEvent({ type: 'started', sampleRate: 16000, mic: true, system: true, source: 'pipewire' })
+  }
+
+  private record(channel: Channel, props: string) {
+    const args = ['--raw', '--rate', '16000', '--channels', '1', '--format', 's16', '-P', `{ media.name = "Oatmeal ${channel}" ${props} }`, '-']
+    const child = spawn('pw-record', args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    let odd: Buffer | null = null // a sample split across reads
+    child.stdout!.on('data', (chunk: Buffer) => {
+      if (odd) chunk = Buffer.concat([odd, chunk])
+      const count = chunk.length >> 1
+      odd = chunk.length & 1 ? chunk.subarray(chunk.length - 1) : null
+      const samples = new Float32Array(count)
+      for (let i = 0; i < count; i++) samples[i] = chunk.readInt16LE(i * 2) / 32768
+      if (count) this.cb.onAudio(channel, samples)
+    })
+    child.stderr!.on('data', (chunk: Buffer) => this.cb.onEvent({ type: 'log', channel, message: chunk.toString('utf8').trim() }))
+    child.on('error', (error) => this.cb.onEvent({ type: 'error', channel, message: `pw-record: ${error.message}` }))
+    child.on('exit', (code, signal) => {
+      if (!this.stopping) this.cb.onEnded(`${channel} capture (pw-record) exited (${signal ?? code})`)
+    })
+    this.children.push(child)
+  }
+
+  async stop(): Promise<void> {
+    if (this.stopping) return
+    this.stopping = true
+    await Promise.all(
+      this.children
+        .filter((child) => child.pid !== undefined && child.exitCode === null && child.signalCode === null)
+        .map((child) => new Promise<void>((resolve) => {
+          child.once('exit', () => resolve())
+          child.kill('SIGTERM')
+        })),
+    )
   }
 }
 

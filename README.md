@@ -2,9 +2,9 @@
 
 # Oatmeal
 
-A small, private meeting-notes app for macOS. When you join a call in Zoom, Meet, Teams, Slack, Discord or FaceTime, Oatmeal offers to transcribe it. When the call ends, it writes notes: a summary, decisions, action items and open questions.
+A small, private meeting-notes app for macOS and Linux (built and tested on [Omarchy](https://omarchy.org)). When you join a call in Zoom, Meet, Teams, Slack, Discord or FaceTime, Oatmeal offers to transcribe it. When the call ends, it writes notes: a summary, decisions, action items and open questions.
 
-Everything runs on your Mac: speech-to-text with [Moonshine](https://github.com/moonshine-ai/moonshine), notes with [Gemma 4](https://ai.google.dev/gemma) through [llama.cpp](https://github.com/ggml-org/llama.cpp). Audio is never saved, and nothing is uploaded. Oatmeal only goes online to download models.
+Everything runs on your computer: speech-to-text with [Moonshine](https://github.com/moonshine-ai/moonshine), notes with [Gemma 4](https://ai.google.dev/gemma) through [llama.cpp](https://github.com/ggml-org/llama.cpp). Audio is never saved, and nothing is uploaded. Oatmeal only goes online to download models.
 
 > **Status:** early. The full pipeline works end to end. Live capture from a real call still needs testing on more setups.
 
@@ -18,9 +18,9 @@ Everything runs on your Mac: speech-to-text with [Moonshine](https://github.com/
 
 ## Requirements
 
-- macOS 15 or later on Apple Silicon
+- macOS 15 or later on Apple Silicon, with Xcode Command Line Tools (Swift 5.9+) to build the audio helper
+- or Linux x64/arm64 with glibc 2.34+ and PipeWire (`pw-record`, and `pactl` from pipewire-pulse), plus `bsdtar` for setup. Notes run on CUDA or Vulkan when available, otherwise the CPU
 - Node.js 22.12+ and npm
-- Xcode Command Line Tools (Swift 5.9+), to build the audio helper
 
 ## Getting started
 
@@ -32,13 +32,15 @@ npm run dev
 `npm run dev` first runs `npm run setup`, which:
 
 1. downloads the native Moonshine library from the official `moonshine-voice` wheel on PyPI (checksum-verified) into `resources/moonshine/`
-2. builds the Swift audio helper into `resources/bin/oatmeal-audio`
+2. on macOS, builds the Swift audio helper into `resources/bin/oatmeal-audio`
 
 In the app, open **Settings** to download the speech model (~280 MB) and the notes model (Gemma 4 E4B, 5 GB, or E2B / 26B-A4B). Then allow the two permissions.
 
 **Permissions in development.** macOS gives microphone and system-audio access to whatever launched Electron, so run `npm run dev` from an app that declares both permissions in its Info.plist (`NSMicrophoneUsageDescription` and `NSAudioCaptureUsageDescription`). T3 Code, VS Code and Cursor do. Ghostty only declares the microphone, so system audio comes through silent. Terminal.app declares neither. Use **Settings → Permissions → Allow**, and macOS will ask on behalf of that app.
 
-To see the real permission flow, with "Oatmeal" in the dialogs, build the app and run it from Finder:
+**Linux** needs no permissions. Oatmeal records through PipeWire: the default mic, plus a monitor of the default output for everyone else. On Hyprland it adds a window rule at runtime (`hyprctl eval`) so the call panel floats, pinned, in the top-right corner without taking focus.
+
+To see the real permission flow on macOS, with "Oatmeal" in the dialogs, build the app and run it from Finder:
 
 ```bash
 npm run dist:mac:local   # ad-hoc signed app in dist/mac-arm64/Oatmeal.app
@@ -54,7 +56,9 @@ npm run dist:mac:local   # ad-hoc signed app in dist/mac-arm64/Oatmeal.app
 | `npm run typecheck` | Type-check all code |
 | `npm run dist:mac:local` | Package an ad-hoc signed `.app` for local use |
 | `npm run dist:mac` | Package a signed `.dmg` + `.zip` (needs a Developer ID certificate) |
-| `npm run make-test-meeting -- <dir>` | Generate a synthetic two-channel meeting with macOS voices |
+| `npm run dist:linux` | Package an AppImage and an Arch package (`sudo pacman -U dist/oatmeal-*.pacman`) |
+| `npm run dist:linux:dir` | Package an unpacked app in `dist/linux-unpacked/` |
+| `npm run make-test-meeting -- <dir>` | Generate a synthetic two-channel meeting with macOS voices (on Linux, Piper voices: see the script) |
 
 ### End-to-end testing without a real call
 
@@ -80,6 +84,7 @@ oatmeal-audio (Swift)  ──PCM──▶  ASR utility process  ──lines─�
                                   node-llama-cpp (Metal), map → verify → reduce
 ```
 
+- **Linux audio** (`src/main/pulse.ts`, `src/workers/asr/sources.ts`): no helper. Detection watches `pactl subscribe` and reads which processes have mic and playback streams. Capture runs two `pw-record` processes.
 - **`native/macos/OatmealAudio`**: a Swift CLI. `detect` polls Core Audio's per-process objects to see which apps are capturing the mic. `capture` records the mic (AVAudioEngine) and system audio through a Core Audio process tap (macOS 14.2+; needs no Screen Recording permission) as 16 kHz PCM.
 - **`src/workers/asr`**: native Moonshine through FFI. Partial-line decoding is off, and speaker separation runs only on the system channel, at a coarser cadence to save CPU.
 - **`src/shared/summarize.ts`**: the notes pipeline. It splits the transcript into ~6K-token chunks, extracts structured notes per chunk, drops items whose timestamps fall outside their chunk, then merges everything into the final notes.

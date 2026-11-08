@@ -48,7 +48,7 @@ export function MeetingView({ meetingId, recording, onNavigate }: { meetingId: s
     wasLive.current = isLive
   }, [isLive])
 
-  if (!meeting) return <div className="h-12 [-webkit-app-region:drag]" />
+  if (!meeting) return <div className="h-3 mac:h-12 [-webkit-app-region:drag]" />
 
   const activeTab = tab ?? (isLive || meeting.status === 'recording' ? 'transcript' : 'notes')
   const exportAs = (format: ExportFormat) => run(window.oatmeal.exportMeeting(meetingId, format))
@@ -59,7 +59,7 @@ export function MeetingView({ meetingId, recording, onNavigate }: { meetingId: s
 
   return (
     <Tabs value={activeTab} onValueChange={setTab} className="flex h-full min-h-0 flex-col gap-0">
-      <header className="shrink-0 border-b px-8 pt-10 pb-3 [-webkit-app-region:drag]">
+      <header className="shrink-0 border-b px-4 pt-5 pb-3 sm:px-8 mac:pt-10 [-webkit-app-region:drag]">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1 [-webkit-app-region:no-drag]">
             {editing ? (

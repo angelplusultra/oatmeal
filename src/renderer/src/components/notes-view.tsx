@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useSummaryProgress } from '@/hooks/use-oatmeal'
+import { machine } from '@/lib/utils'
 
 function Timestamp({ ms, onJump }: { ms: number | null; onJump: (ms: number) => void }) {
   if (ms === null) return null
@@ -103,7 +104,7 @@ function Summary({ meeting, summary, onJump }: { meeting: Meeting; summary: Meet
       )}
 
       <p className="text-xs text-muted-foreground">
-        Written by {summary.model} on this Mac · {new Date(summary.generatedAt).toLocaleString()}
+        Written by {summary.model} on this {machine} · {new Date(summary.generatedAt).toLocaleString()}
       </p>
     </div>
   )
@@ -173,7 +174,7 @@ export function NotesView({ meeting, isLive, onJump }: { meeting: Meeting; isLiv
   }
   return (
     <ScrollArea className="h-full">
-      <div className="mx-auto max-w-3xl px-8 py-6">{body}</div>
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-8">{body}</div>
     </ScrollArea>
   )
 }

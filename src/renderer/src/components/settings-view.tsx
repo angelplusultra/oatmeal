@@ -15,10 +15,11 @@ import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { useModelStatus, usePermissions, useSettings } from '@/hooks/use-oatmeal'
 import { formatBytes } from '@/lib/format'
+import { isMac, machine } from '@/lib/utils'
 
 function Row({ title, description, children }: { title: string; description?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-6">
+    <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
       <div className="min-w-0 space-y-0.5">
         <Label className="text-sm font-medium">{title}</Label>
         {description && <div className="text-sm text-muted-foreground">{description}</div>}
@@ -136,14 +137,14 @@ export function SettingsView() {
 
   return (
     <ScrollArea className="h-full">
-      <div className="h-12 [-webkit-app-region:drag]" />
-      <div className="mx-auto max-w-3xl space-y-6 px-8 pb-12">
+      <div className="h-5 mac:h-12 [-webkit-app-region:drag]" />
+      <div className="mx-auto max-w-3xl space-y-6 px-4 pb-12 sm:px-8">
         <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
 
         <Card>
           <CardHeader>
             <CardTitle>Transcription</CardTitle>
-            <CardDescription>Runs on your Mac with Moonshine. English only for now.</CardDescription>
+            <CardDescription>Runs on your {machine} with Moonshine. English only for now.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <Row title="Speech model" description={asr.description}>
@@ -179,13 +180,13 @@ export function SettingsView() {
             <CardDescription>Written by a local language model after each call.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <Row title="Run notes model" description={settings.llmProvider === 'local' ? 'Built in, using llama.cpp with Metal.' : 'On a server you run.'}>
+            <Row title="Run notes model" description={settings.llmProvider === 'local' ? `Built in, using llama.cpp with ${isMac ? 'Metal' : 'CUDA, Vulkan or the CPU'}.` : 'On a server you run.'}>
               <Select value={settings.llmProvider} onValueChange={(v) => set({ llmProvider: v as Settings['llmProvider'] })}>
                 <SelectTrigger className="w-56">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="local">On this Mac (built in)</SelectItem>
+                  <SelectItem value="local">On this {machine} (built in)</SelectItem>
                   <SelectItem value="endpoint">OpenAI-compatible server</SelectItem>
                 </SelectContent>
               </Select>
@@ -259,9 +260,13 @@ export function SettingsView() {
           <CardHeader>
             <CardTitle>Permissions</CardTitle>
             <CardDescription>
-              {permissions && !permissions.helperAvailable
-                ? 'The audio helper is missing. Run `npm run setup`.'
-                : 'macOS asks once. If you denied access, turn it on in System Settings.'}
+              {!isMac
+                ? permissions && !permissions.helperAvailable
+                  ? 'Oatmeal records through PipeWire. Install pipewire-pulse (for pactl) and pipewire (for pw-record).'
+                  : 'Linux needs no permission for audio. Oatmeal records through PipeWire.'
+                : permissions && !permissions.helperAvailable
+                  ? 'The audio helper is missing. Run `npm run setup`.'
+                  : 'macOS asks once. If you denied access, turn it on in System Settings.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -274,7 +279,7 @@ export function SettingsView() {
           <CardHeader>
             <CardTitle>Your data</CardTitle>
             <CardDescription>
-              Transcripts, notes and models are stored only on this Mac. Audio is never saved. Oatmeal only goes online to download models.
+              Transcripts, notes and models are stored only on this {machine}. Audio is never saved. Oatmeal only goes online to download models.
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -122,7 +122,7 @@ export function TranscriptView({
         stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
       }}
     >
-      <div className="mx-auto max-w-3xl space-y-5 px-8 py-6">
+      <div className="mx-auto max-w-3xl space-y-5 px-4 py-6 sm:px-8">
         {blocks.length === 0 && !someoneSpeaking && (
           <p className="py-6 text-sm text-muted-foreground">
             {isLive ? 'Listening… Each sentence appears here a moment after it’s spoken.' : 'Nothing was transcribed in this meeting.'}

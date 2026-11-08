@@ -5,6 +5,7 @@ import { RecordButton } from '@/components/record-button'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useModelStatus, usePermissions, useSettings } from '@/hooks/use-oatmeal'
+import { isMac, machine } from '@/lib/utils'
 
 function Step({ done, title, detail }: { done: boolean; title: string; detail: string }) {
   return (
@@ -28,15 +29,15 @@ export function HomeView({ onNavigate, recording }: { onNavigate: (v: View) => v
 
   return (
     <div className="flex h-full flex-col">
-      <div className="h-12 shrink-0 [-webkit-app-region:drag]" />
-      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-6 px-8 pb-16">
+      <div className="h-3 shrink-0 mac:h-12 [-webkit-app-region:drag]" />
+      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-6 px-4 pb-16 sm:px-8">
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight">Oatmeal</h1>
           <p className="text-muted-foreground">
             Join a call in Zoom, Meet, Teams, Slack or Discord and Oatmeal will offer to transcribe it. When the call ends, it writes your notes.
           </p>
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <LockIcon className="size-3.5" /> Everything runs on this Mac. No audio or text ever leaves it.
+            <LockIcon className="size-3.5" /> Everything runs on this {machine}. No audio or text ever leaves it.
           </p>
         </div>
 
@@ -44,7 +45,7 @@ export function HomeView({ onNavigate, recording }: { onNavigate: (v: View) => v
           <Card>
             <CardHeader>
               <CardTitle>Finish setting up</CardTitle>
-              <CardDescription>A one-time download of the models, plus two macOS permissions.</CardDescription>
+              <CardDescription>A one-time download of the models{isMac && ', plus two macOS permissions'}.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <ul className="space-y-3">

@@ -1,5 +1,5 @@
 /**
- * Meeting detection: runs `oatmeal-audio detect` and turns "these processes are using the mic / playing
+ * Meeting detection: runs `oatmeal-audio detect` (on Linux, `pactl subscribe` + pulse.ts) and turns "these processes are using the mic / playing
  * audio" into per-app state, keeping only known meeting apps and browsers.
  *
  * - `started`: a meeting app has held the mic for START_DEBOUNCE_MS (time to offer transcription).
@@ -11,6 +11,7 @@ import { EventEmitter } from 'node:events'
 import { matchMeetingApp } from '@shared/models'
 import type { DetectedApp } from '@shared/types'
 import { helperAvailable } from './helper'
+import { listAudioProcesses, type AudioProcess } from './pulse'
 
 /** A meeting app must hold the mic this long before we prompt (filters blips like device probing). */
 const START_DEBOUNCE_MS = 2000
@@ -27,11 +28,6 @@ interface MicEntry {
   announced: boolean
 }
 
-interface AudioProcess extends DetectedApp {
-  input: boolean
-  output: boolean
-}
-
 export class MeetingDetector {
   private child: ChildProcess | null = null
   private readonly events = new EventEmitter()
@@ -40,6 +36,8 @@ export class MeetingDetector {
   private readonly playing = new Map<string, { playing: boolean; since: number }>()
   private stopped = true
   private restartDelay = 1000
+  private refreshTimer: NodeJS.Timeout | null = null
+  private refreshing: Promise<void> = Promise.resolve()
 
   constructor(
     private readonly helperPath: string,
@@ -78,8 +76,14 @@ export class MeetingDetector {
   start() {
     if (!helperAvailable(this.helperPath) || this.child) return
     this.stopped = false
-    const child = spawn(this.helperPath, ['detect', '--interval-ms', '500'], { stdio: ['pipe', 'pipe', 'ignore'] })
+    // Linux: `pactl subscribe` prints a line per PipeWire change; re-read the stream lists after each burst.
+    const linux = process.platform === 'linux'
+    const child = linux
+      ? spawn('pactl', ['subscribe'], { stdio: ['ignore', 'pipe', 'ignore'] })
+      : spawn(this.helperPath, ['detect', '--interval-ms', '500'], { stdio: ['pipe', 'pipe', 'ignore'] })
     this.child = child
+    child.on('error', (error) => console.error('[detector]', error.message))
+    if (linux) this.refreshSoon()
     let buffer = ''
     child.stdout!.on('data', (chunk: Buffer) => {
       buffer += chunk.toString('utf8')
@@ -87,6 +91,10 @@ export class MeetingDetector {
       while ((nl = buffer.indexOf('\n')) >= 0) {
         const line = buffer.slice(0, nl)
         buffer = buffer.slice(nl + 1)
+        if (linux) {
+          if (/sink-input|source-output/.test(line)) this.refreshSoon()
+          continue
+        }
         try {
           const msg = JSON.parse(line) as { type: string; processes: AudioProcess[] }
           if (msg.type === 'audio-users') this.update(msg.processes)
@@ -104,8 +112,24 @@ export class MeetingDetector {
     })
   }
 
+  private refreshSoon() {
+    if (this.refreshTimer) return
+    this.refreshTimer = setTimeout(() => {
+      this.refreshTimer = null
+      // Chained so snapshots apply in order.
+      this.refreshing = this.refreshing
+        .then(() => listAudioProcesses())
+        .then((processes) => {
+          if (!this.stopped) this.update(processes)
+        })
+        .catch((error) => console.error('[detector] pactl failed:', error.message))
+    }, 200)
+  }
+
   stop() {
     this.stopped = true
+    if (this.refreshTimer) clearTimeout(this.refreshTimer)
+    this.refreshTimer = null
     this.child?.stdin?.end()
     this.child?.kill()
     this.child = null

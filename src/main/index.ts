@@ -1,4 +1,4 @@
-import { app, Notification } from 'electron'
+import { app, Menu, Notification } from 'electron'
 import os from 'node:os'
 import path from 'node:path'
 import type { OatmealEvents } from '@shared/api'
@@ -28,6 +28,8 @@ if (!app.requestSingleInstanceLock()) {
 
 async function main() {
   const paths = getPaths()
+  // Linux: no File/Edit/View menu bar. Text-field shortcuts (copy, paste, undo) work without it.
+  if (process.platform !== 'darwin') Menu.setApplicationMenu(null)
   // Packaged builds get the icon from the bundle; in dev, show it in the Dock too.
   if (!app.isPackaged && process.platform === 'darwin') app.dock?.setIcon(path.join(app.getAppPath(), 'build', 'icon.png'))
   const store = new Store(paths.db)

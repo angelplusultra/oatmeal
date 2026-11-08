@@ -23,12 +23,12 @@ asarUnpack:
   - node_modules/@node-llama-cpp/*
   - node_modules/koffi/**
 
-# The audio helper, the native Moonshine library and the tray icons live in Contents/Resources.
+# The audio helper (macOS only), the native Moonshine library and the tray icons live in the resources dir.
 extraResources:
   - from: resources/bin
     to: bin
-  - from: resources/moonshine/darwin-arm64
-    to: moonshine/darwin-arm64
+  - from: resources/moonshine/${platform}-${arch}
+    to: moonshine/${platform}-${arch}
   - from: resources/tray
     to: tray
 
@@ -49,6 +49,19 @@ mac:
   extendInfo:
     NSMicrophoneUsageDescription: Oatmeal transcribes what you say during your calls. Audio is processed on this Mac and never saved or uploaded.
     NSAudioCaptureUsageDescription: Oatmeal transcribes the other people on your calls. Audio is processed on this Mac and never saved or uploaded.
+
+# Linux needs PipeWire (pw-record, and pactl from pipewire-pulse) at runtime instead of the helper.
+linux:
+  target:
+    - target: AppImage
+      arch: x64
+    - target: pacman
+      arch: x64
+  category: Office
+  executableName: oatmeal
+  synopsis: Private, local meeting notes
+pacman:
+  depends: [pipewire, pipewire-pulse]
 
 dmg:
   title: Oatmeal
