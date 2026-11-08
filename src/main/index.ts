@@ -12,6 +12,7 @@ import { registerIpc } from './ipc'
 import { Orchestrator } from './orchestrator'
 import { getPaths } from './paths'
 import { AppTray } from './tray'
+import { Updater } from './updater'
 import { WorkerClient } from './worker-client'
 import { WindowManager } from './windows'
 
@@ -50,6 +51,8 @@ async function main() {
   const ownPids = () => app.getAppMetrics().map((m) => m.pid)
   const detector = new MeetingDetector(paths.helper, () => new Set(ownPids()))
 
+  // Set up below, once the orchestrator exists (it reports whether a restart would cut off a recording).
+  let updater: Updater | null = null
   const updateSettings = (patch: Partial<Settings>): Settings => {
     settings = { ...settings, ...patch }
     store.saveSettings(settings)
@@ -57,6 +60,7 @@ async function main() {
       if (settings.detectionEnabled) detector.start()
       else detector.stop()
     }
+    if ('autoUpdate' in patch) updater?.setEnabled(settings.autoUpdate)
     return settings
   }
 
@@ -88,18 +92,35 @@ async function main() {
   orchestrator.recoverUnfinished()
   windows.onMainFocus = () => orchestrator.onMainWindowFocused()
 
-  registerIpc({ store, paths, orchestrator, windows, broadcast, getSettings: () => settings, updateSettings })
+  const activeUpdater = new Updater({
+    onChange: (state) => broadcast('update-state', state),
+    busyReason: () => (orchestrator.getState().kind === 'idle' ? null : 'Stop the recording before restarting to update'),
+  })
+  updater = activeUpdater
+
+  registerIpc({ store, paths, orchestrator, windows, broadcast, getSettings: () => settings, updateSettings, updater: activeUpdater })
 
   const tray = new AppTray(paths.trayIcons, {
     start: () => void orchestrator.start(null),
     stop: () => void orchestrator.stop('user'),
     open: () => windows.showMain(),
+    installUpdate: () => {
+      try {
+        activeUpdater.install()
+      } catch (error) {
+        broadcast('toast', { kind: 'error', message: error instanceof Error ? error.message : String(error) })
+      }
+    },
   })
 
   // Keep the tray in sync, and drive the optional screenshot hooks (see dev.ts).
   let stoppedAt = 0
   onBroadcast = (event, payload) => {
     if (event === 'toast' && process.env.OATMEAL_SCREENSHOT_DIR) console.log(`[dev] toast: ${JSON.stringify(payload)}`)
+    if (event === 'update-state') {
+      const { status } = payload as OatmealEvents['update-state']
+      tray.setUpdateReady(status.kind === 'ready' ? status.version : null)
+    }
     if (event === 'recording-state') {
       const state = payload as OatmealEvents['recording-state']
       tray.update(state)
@@ -132,6 +153,7 @@ async function main() {
 
   if (!process.env.OATMEAL_START_HIDDEN) windows.showMain()
   if (settings.detectionEnabled) detector.start()
+  activeUpdater.setEnabled(settings.autoUpdate)
   setTimeout(() => void screenshot('home'), 2000)
   if (process.env.OATMEAL_START_VIEW === 'settings') {
     windows.navigate({ view: 'settings' })
@@ -148,6 +170,8 @@ async function main() {
       .shutdown()
       .catch((error) => console.error('shutdown failed', error))
       .finally(() => {
+        activeUpdater.stop()
+        activeUpdater.installOnExit()
         tray.destroy()
         store.close()
         app.exit(0)
@@ -160,7 +184,10 @@ async function main() {
     if (orchestrator.recentlyPrompted() || Date.now() - launchedHiddenAt < 5000) return
     windows.showMain()
   })
-  app.on('second-instance', () => windows.showMain())
+  app.on('second-instance', () => {
+    // Installing an AppImage update briefly runs the new copy, which hands off to us. Don't pop up for it.
+    if (!activeUpdater.installing) windows.showMain()
+  })
 }
 
 function describeWindow(windows: WindowManager): string {

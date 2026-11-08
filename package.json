@@ -27,6 +27,7 @@
     "postversion": "git push --follow-tags"
   },
   "dependencies": {
+    "electron-updater": "^6.8.11",
     "koffi": "^3.3.7",
     "node-llama-cpp": "^3.22.3"
   },

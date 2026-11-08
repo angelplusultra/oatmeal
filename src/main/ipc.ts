@@ -8,6 +8,7 @@ import type { Store } from './db'
 import { getPermissions, openPermissionSettings } from './helper'
 import type { Orchestrator } from './orchestrator'
 import type { Paths } from './paths'
+import type { Updater } from './updater'
 import type { WindowManager } from './windows'
 
 interface IpcDeps {
@@ -18,12 +19,13 @@ interface IpcDeps {
   broadcast<K extends keyof OatmealEvents>(event: K, payload: OatmealEvents[K]): void
   getSettings(): Settings
   updateSettings(patch: Partial<Settings>): Settings
+  updater: Updater
 }
 
 const slug = (s: string) => s.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 60) || 'meeting'
 
 export function registerIpc(deps: IpcDeps) {
-  const { store, orchestrator, windows, broadcast } = deps
+  const { store, orchestrator, windows, broadcast, updater } = deps
   const changed = (meetingId: string) => {
     broadcast('meeting-updated', { meetingId })
     broadcast('meetings-changed', null)
@@ -149,6 +151,15 @@ export function registerIpc(deps: IpcDeps) {
     },
     async takePendingNavigation() {
       return windows.takePendingNavigation()
+    },
+    async getUpdateState() {
+      return updater.state
+    },
+    async checkForUpdates() {
+      await updater.check()
+    },
+    async installUpdate() {
+      updater.install()
     },
   }
 

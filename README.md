@@ -4,7 +4,7 @@
 
 A small, private meeting-notes app for macOS and Linux (built and tested on [Omarchy](https://omarchy.org)). When you join a call in Zoom, Meet, Teams, Slack, Discord or FaceTime, Oatmeal offers to transcribe it. When the call ends, it writes notes: a summary, decisions, action items and open questions.
 
-Everything runs on your computer: speech-to-text with [Moonshine](https://github.com/moonshine-ai/moonshine), notes with [Gemma 4](https://ai.google.dev/gemma) through [llama.cpp](https://github.com/ggml-org/llama.cpp). Audio is never saved, and nothing is uploaded. Oatmeal only goes online to download models.
+Everything runs on your computer: speech-to-text with [Moonshine](https://github.com/moonshine-ai/moonshine), notes with [Gemma 4](https://ai.google.dev/gemma) through [llama.cpp](https://github.com/ggml-org/llama.cpp). Audio is never saved, and nothing is uploaded. Oatmeal only goes online to download models and to check GitHub for app updates (you can turn that off in Settings).
 
 > **Status:** early. The full pipeline works end to end. Live capture from a real call still needs testing on more setups.
 
