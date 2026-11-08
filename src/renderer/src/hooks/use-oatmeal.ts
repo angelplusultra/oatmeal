@@ -9,6 +9,7 @@ import type {
   Segment,
   Settings,
   SummaryProgress,
+  UpdateState,
 } from '@shared/types'
 
 const api = () => window.oatmeal
@@ -103,6 +104,13 @@ export function usePermissions() {
     return () => window.removeEventListener('focus', refresh)
   }, [refresh])
   return { permissions, refresh, setPermissions }
+}
+
+export function useUpdateState() {
+  const [state, setState] = useState<UpdateState | null>(null)
+  useEffect(() => void api().getUpdateState().then(setState), [])
+  useEvent('update-state', setState)
+  return state
 }
 
 export function useSummaryProgress(meetingId: string | null) {

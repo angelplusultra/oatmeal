@@ -95,6 +95,8 @@ export interface Settings {
   endpointUrl: string
   endpointModel: string
   endpointApiKey: string
+  /** Check GitHub Releases for a new version in the background and install it on the next restart. */
+  autoUpdate: boolean
 }
 
 export type RecordingState =
@@ -161,4 +163,20 @@ export interface SummaryProgress {
   stage: 'loading' | 'map' | 'reduce'
   done: number
   total: number
+}
+
+/** Self-updates come from the project's GitHub Releases (macOS, and Linux AppImages). */
+export type UpdateStatus =
+  /** Running from source, or installed in a way that updates through something else (e.g. pacman). */
+  | { kind: 'unsupported'; reason: string }
+  | { kind: 'idle'; lastChecked: number | null }
+  | { kind: 'checking' }
+  | { kind: 'downloading'; version: string; percent: number }
+  /** Downloaded. It installs when Oatmeal quits, or now with "Restart to update". */
+  | { kind: 'ready'; version: string }
+  | { kind: 'error'; message: string }
+
+export interface UpdateState {
+  currentVersion: string
+  status: UpdateStatus
 }

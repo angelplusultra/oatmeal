@@ -61,6 +61,9 @@ jobs:
             dist/*.zip
             dist/*.AppImage
             dist/*.pacman
+            dist/*.blockmap
+            dist/*.yml
+            !dist/builder-debug.yml
           if-no-files-found: error
 
   publish:

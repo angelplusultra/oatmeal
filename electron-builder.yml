@@ -34,6 +34,13 @@ extraResources:
 
 npmRebuild: false
 
+# Self-updates (electron-updater) read latest-mac.yml / latest-linux.yml (beta-*.yml for beta versions) from
+# GitHub Releases. The release workflow uploads them; it runs with `--publish never`, so this only sets the feed.
+publish:
+  provider: github
+  owner: angelplusultra
+  repo: oatmeal
+
 mac:
   target:
     - target: dmg

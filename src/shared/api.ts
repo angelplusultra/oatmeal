@@ -12,6 +12,7 @@ import type {
   Segment,
   Settings,
   SummaryProgress,
+  UpdateState,
 } from './types'
 
 export type ExportFormat = 'notes-md' | 'transcript-txt' | 'transcript-md' | 'transcript-json'
@@ -28,6 +29,7 @@ export interface OatmealEvents {
   panel: PanelState | null
   navigate: { meetingId: string } | { view: 'settings' }
   toast: { kind: 'info' | 'success' | 'error'; message: string }
+  'update-state': UpdateState
 }
 
 export interface OatmealInvoke {
@@ -59,6 +61,10 @@ export interface OatmealInvoke {
   respondToPanel(action: PanelAction): Promise<void>
   /** Where the main window should open (set when it was created by a notification or a new recording). */
   takePendingNavigation(): Promise<OatmealEvents['navigate'] | null>
+  getUpdateState(): Promise<UpdateState>
+  checkForUpdates(): Promise<void>
+  /** Quits and relaunches into the downloaded version. Refused while recording. */
+  installUpdate(): Promise<void>
 }
 
 export const INVOKE_METHODS = [
@@ -88,6 +94,9 @@ export const INVOKE_METHODS = [
   'getPanel',
   'respondToPanel',
   'takePendingNavigation',
+  'getUpdateState',
+  'checkForUpdates',
+  'installUpdate',
 ] as const satisfies readonly (keyof OatmealInvoke)[]
 
 export interface OatmealApi extends OatmealInvoke {

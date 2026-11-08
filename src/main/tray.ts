@@ -9,10 +9,12 @@ export class AppTray {
   private readonly recordingIcon: Electron.NativeImage
   private timer: NodeJS.Timeout | null = null
   private recording = false
+  private state: RecordingState = { kind: 'idle' }
+  private updateVersion: string | null = null
 
   constructor(
     iconDir: string,
-    private readonly actions: { start(): void; stop(): void; open(): void },
+    private readonly actions: { start(): void; stop(): void; open(): void; installUpdate(): void },
   ) {
     this.template = nativeImage.createFromPath(path.join(iconDir, 'trayTemplate.png'))
     this.template.setTemplateImage(true)
@@ -32,7 +34,15 @@ export class AppTray {
     return tint(this.template, nativeTheme.shouldUseDarkColors ? 255 : 0)
   }
 
+  /** A downloaded update adds "Restart to update" to the menu. Nothing pops up. */
+  setUpdateReady(version: string | null) {
+    if (version === this.updateVersion) return
+    this.updateVersion = version
+    this.update(this.state)
+  }
+
   update(state: RecordingState) {
+    this.state = state
     if (this.timer) clearInterval(this.timer)
     this.timer = null
     const recording = state.kind === 'recording'
@@ -54,6 +64,12 @@ export class AppTray {
             ? { label: 'Stop transcribing', click: () => this.actions.stop() }
             : { label: 'Start transcribing', enabled: state.kind === 'idle', click: () => this.actions.start() },
           { label: 'Open Oatmeal', click: () => this.actions.open() },
+          ...(this.updateVersion
+            ? [
+                { type: 'separator' as const },
+                { label: `Restart to update to ${this.updateVersion}`, enabled: state.kind === 'idle', click: () => this.actions.installUpdate() },
+              ]
+            : []),
           { type: 'separator' },
           { label: 'Quit Oatmeal', role: 'quit' },
         ]),

@@ -88,6 +88,7 @@ export function defaultSettings(machine: { cpuCount: number; totalMemGB: number 
     endpointUrl: 'http://localhost:11434/v1',
     endpointModel: '',
     endpointApiKey: '',
+    autoUpdate: true,
   }
 }
 

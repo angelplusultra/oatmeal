@@ -1,8 +1,8 @@
-import { CheckCircle2Icon, DownloadIcon, FileIcon, FolderOpenIcon, Loader2Icon, XIcon } from 'lucide-react'
+import { CheckCircle2Icon, DownloadIcon, FileIcon, FolderOpenIcon, Loader2Icon, RefreshCwIcon, RotateCwIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ASR_MODELS, LLM_MODELS, asrModel, llmModel } from '@shared/models'
-import type { ModelKind, ModelStatus, PermissionState, Settings } from '@shared/types'
+import type { ModelKind, ModelStatus, PermissionState, Settings, UpdateStatus } from '@shared/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,8 +13,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
-import { useModelStatus, usePermissions, useSettings } from '@/hooks/use-oatmeal'
-import { formatBytes } from '@/lib/format'
+import { useModelStatus, usePermissions, useRecordingState, useSettings, useUpdateState } from '@/hooks/use-oatmeal'
+import { formatBytes, formatDay, formatTime } from '@/lib/format'
 import { isMac, machine } from '@/lib/utils'
 
 function Row({ title, description, children }: { title: string; description?: React.ReactNode; children: React.ReactNode }) {
@@ -179,6 +179,61 @@ function EndpointFields({ settings, update }: { settings: Settings; update: (p: 
   )
 }
 
+function updateDescription(status: UpdateStatus): string {
+  switch (status.kind) {
+    case 'unsupported':
+      return status.reason
+    case 'idle':
+      if (!status.lastChecked) return 'Not checked yet.'
+      return `Up to date. Last checked ${formatDay(status.lastChecked) === 'Today' ? '' : `${formatDay(status.lastChecked)}, `}${formatTime(status.lastChecked)}.`
+    case 'checking':
+      return 'Checking for updates…'
+    case 'downloading':
+      return `Downloading version ${status.version}… ${status.percent}%`
+    case 'ready':
+      return `Version ${status.version} is ready. It installs when you quit Oatmeal.`
+    case 'error':
+      return `Couldn't update: ${status.message}`
+  }
+}
+
+function UpdatesCard({ settings, set }: { settings: Settings; set: (patch: Partial<Settings>) => void }) {
+  const update = useUpdateState()
+  const recording = useRecordingState().kind !== 'idle'
+  if (!update) return null
+  const { status } = update
+  const unsupported = status.kind === 'unsupported'
+  const busy = status.kind === 'checking' || status.kind === 'downloading'
+  const install = () => void window.oatmeal.installUpdate().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Updates</CardTitle>
+        <CardDescription>New versions come from Oatmeal's GitHub releases. Checking sends nothing about your meetings.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <Row title="Update automatically" description="Checks every few hours, downloads in the background, and installs when you quit or restart.">
+          <Switch checked={settings.autoUpdate && !unsupported} disabled={unsupported} onCheckedChange={(v) => set({ autoUpdate: v })} />
+        </Row>
+        <Row title={`Version ${update.currentVersion}`} description={updateDescription(status)}>
+          {status.kind === 'ready' ? (
+            <Button disabled={recording} title={recording ? 'Stop the recording first' : undefined} onClick={install}>
+              <RotateCwIcon /> Restart to update
+            </Button>
+          ) : (
+            !unsupported && (
+              <Button variant="outline" disabled={busy} onClick={() => void window.oatmeal.checkForUpdates()}>
+                {busy ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />} Check now
+              </Button>
+            )
+          )}
+        </Row>
+      </CardContent>
+    </Card>
+  )
+}
+
 export function SettingsView() {
   const { settings, update } = useSettings()
   const { status, refresh } = useModelStatus()
@@ -328,11 +383,14 @@ export function SettingsView() {
           </CardContent>
         </Card>
 
+        <UpdatesCard settings={settings} set={set} />
+
         <Card>
           <CardHeader>
             <CardTitle>Your data</CardTitle>
             <CardDescription>
-              Transcripts, notes and models are stored only on this {machine}. Audio is never saved. Oatmeal only goes online to download models.
+              Transcripts, notes and models are stored only on this {machine}. Audio is never saved. Oatmeal only goes online to download models
+              and, if updates are on, to check for a new version.
             </CardDescription>
           </CardHeader>
           <CardContent>
