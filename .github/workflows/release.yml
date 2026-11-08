@@ -11,6 +11,8 @@ permissions:
 jobs:
   build:
     strategy:
+      # One platform failing shouldn't cancel the other's build (Linux packaging alone takes ~13 min).
+      fail-fast: false
       matrix:
         include:
           - os: macos-15
@@ -51,7 +53,17 @@ jobs:
             export CSC_IDENTITY_AUTO_DISCOVERY=false
             args+=(-c.mac.identity=-)
           fi
-          npx electron-builder "${args[@]}"
+          # After Apple accepts the app, stapling fetches the ticket from Apple's CloudKit server, and on GitHub's
+          # macOS runners that connection often drops (NSURLErrorDomain -1005, "Failed to staple ... code: 68").
+          # stapler doesn't retry, so retry the package step, but only for that failure.
+          set -o pipefail
+          for attempt in 1 2 3; do
+            npx electron-builder "${args[@]}" 2>&1 | tee package.log && exit 0
+            grep -q 'Failed to staple' package.log || exit 1
+            echo "::warning::Stapling failed on attempt $attempt (Apple's ticket server dropped the connection). Retrying."
+            sleep 60
+          done
+          exit 1
 
       - uses: actions/upload-artifact@v4
         with:
