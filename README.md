@@ -58,6 +58,7 @@ npm run dist:mac:local   # ad-hoc signed app in dist/mac-arm64/Oatmeal.app
 | `npm run dist:mac` | Package a signed `.dmg` + `.zip` (needs a Developer ID certificate) |
 | `npm run dist:linux` | Package an AppImage and an Arch package (`sudo pacman -U dist/oatmeal-*.pacman`) |
 | `npm run dist:linux:dir` | Package an unpacked app in `dist/linux-unpacked/` |
+| `npm version patch\|minor\|major` | Bump the version, tag it and push; CI publishes the release |
 | `npm run make-test-meeting -- <dir>` | Generate a synthetic two-channel meeting with macOS voices (on Linux, Piper voices: see the script) |
 
 ### End-to-end testing without a real call
