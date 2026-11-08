@@ -2,7 +2,7 @@ import { getLlama, LlamaChatSession, type Llama, type LlamaContext, type LlamaCo
 import type { JsonSchema, LlmClient } from '@shared/summarize'
 import { createCompactJsonGrammar } from './grammar'
 
-/** llama.cpp via node-llama-cpp (Metal on Apple Silicon). Output is constrained by a JSON-schema grammar. */
+/** llama.cpp via node-llama-cpp (Metal on Apple Silicon; CUDA, Vulkan or CPU on Linux). Output is constrained by a JSON-schema grammar. */
 export class LocalLlm implements LlmClient {
   private context: LlamaContext | null = null
   private sequence: LlamaContextSequence | null = null

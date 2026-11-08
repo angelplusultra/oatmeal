@@ -4,6 +4,8 @@
 @import "@fontsource-variable/geist";
 
 @custom-variant dark (&:is(.dark *));
+/* macOS-only spacing, e.g. room for the traffic lights. main.tsx sets data-platform. */
+@custom-variant mac (&:where([data-platform=mac], [data-platform=mac] *));
 
 @theme inline {
   --font-heading: var(--font-sans);
@@ -121,10 +123,29 @@
   * {
   @apply border-border outline-ring/50;
   }
+  /* Linux only (macOS keeps its native overlay scrollbars): native scrollbars, e.g. the transcript's, match
+     the ScrollArea ones instead of Chromium's classic light ones. The -webkit- form (not scrollbar-color)
+     draws no arrow buttons. main.tsx sets data-platform. */
+  [data-platform=other] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  }
+  [data-platform=other] ::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background: var(--border) content-box;
+  }
+  [data-platform=other] ::-webkit-scrollbar-track,
+  [data-platform=other] ::-webkit-scrollbar-corner {
+  background: transparent;
+  }
   body {
   @apply bg-background text-foreground;
   }
   html {
   @apply font-sans;
+  }
+  html.dark[data-platform=other] {
+  color-scheme: dark;
   }
 }

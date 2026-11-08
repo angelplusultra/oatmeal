@@ -1,4 +1,5 @@
 import { app, BrowserWindow, nativeTheme, screen } from 'electron'
+import { execFile } from 'node:child_process'
 import path from 'node:path'
 import type { OatmealEvents } from '@shared/api'
 import { eventChannel } from '@shared/api'
@@ -41,8 +42,9 @@ export class WindowManager {
     const win = new BrowserWindow({
       width: 1120,
       height: 760,
-      minWidth: 780,
-      minHeight: 500,
+      // Not on Linux: a tiling WM picks the size, and Electron lays the page out at its minimum and clips
+      // it when the tile is smaller. The UI collapses the sidebar instead.
+      ...(process.platform === 'darwin' && { minWidth: 780, minHeight: 500 }),
       show: false,
       title: 'Oatmeal',
       titleBarStyle: 'hiddenInset',
@@ -93,6 +95,7 @@ export class WindowManager {
     if (!this.panel || this.panel.isDestroyed()) {
       const width = 380
       const height = 160
+      floatPanelOnHyprland()
       const { workArea } = screen.getPrimaryDisplay()
       const win = new BrowserWindow({
         width,
@@ -100,19 +103,23 @@ export class WindowManager {
         x: workArea.x + workArea.width - width - 16,
         y: workArea.y + 16,
         frame: false,
-        resizable: false,
+        // Linux: Chromium applies GTK's text-scaling-factor (1.18 on Omarchy) to the page but not to the
+        // fixed size it gives a non-resizable window, so Wayland clips the panel. Resizable sizes correctly.
+        resizable: process.platform === 'linux',
         minimizable: false,
         maximizable: false,
         fullscreenable: false,
         alwaysOnTop: true,
         skipTaskbar: true,
         show: false,
+        title: PANEL_TITLE,
         type: process.platform === 'darwin' ? 'panel' : undefined,
         backgroundColor: this.background(),
         webPreferences: this.webPreferences(),
       })
       win.setAlwaysOnTop(true, 'floating')
       win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+      win.on('page-title-updated', (event) => event.preventDefault()) // keep PANEL_TITLE for the Hyprland rule
       win.on('closed', () => {
         if (this.panel === win) this.panel = null
       })
@@ -137,4 +144,21 @@ export class WindowManager {
       if (!win.isDestroyed()) win.webContents.send(eventChannel(event), payload)
     }
   }
+}
+
+const PANEL_TITLE = 'Oatmeal Panel'
+
+/**
+ * Wayland ignores window positions, always-on-top and "show without focus", so on Hyprland the panel gets a
+ * window rule instead: floating, pinned to every workspace, top-right, and never focused on open. Set at
+ * runtime (and again each time, since a config reload drops it) so users don't have to edit their config.
+ * No `size`: Electron sizes the panel itself, including GTK's text scaling.
+ */
+function floatPanelOnHyprland() {
+  if (process.platform !== 'linux' || !process.env.HYPRLAND_INSTANCE_SIGNATURE) return
+  const rule = `hl.window_rule({ name = "oatmeal-call-panel", match = { title = "^${PANEL_TITLE}$" }, float = true, pin = true,
+    no_initial_focus = true, move = { "(monitor_w-window_w-16)", "(monitor_h*0.04)" } })`
+  execFile('hyprctl', ['eval', rule], (error, stdout) => {
+    if (error || stdout.trim() !== 'ok') console.warn('[windows] could not add the Hyprland panel rule:', error?.message ?? stdout.trim())
+  })
 }

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Oatmeal is a macOS (15+, Apple Silicon) Electron menu-bar app. It detects calls, transcribes the mic and system audio on-device with Moonshine, and writes meeting notes with a local LLM (Gemma 4 via node-llama-cpp). Privacy is the product: audio is never written to disk, and nothing goes online except model downloads. The production renderer CSP blocks all network access. Keep it that way.
+Oatmeal is an Electron menu-bar app for macOS (15+, Apple Silicon) and Linux (developed on Omarchy: Hyprland + PipeWire). It detects calls, transcribes the mic and system audio on-device with Moonshine, and writes meeting notes with a local LLM (Gemma 4 via node-llama-cpp). Privacy is the product: audio is never written to disk, and nothing goes online except model downloads. The production renderer CSP blocks all network access. Keep it that way.
 
 ## Commands
 
@@ -16,11 +16,12 @@ npm test             # vitest run (src/**/*.test.ts, node environment)
 npx vitest run src/shared/summarize.test.ts        # one test file
 npx vitest run -t "reuses a cached result"         # tests whose name matches
 npm run dist:mac:local  # ad-hoc signed .app in dist/mac-arm64/ (needed to test real permission dialogs)
+npm run dist:linux      # AppImage + Arch .pacman in dist/; dist:linux:dir for dist/linux-unpacked/
 ```
 
 No linter or formatter is configured. Typecheck and tests are the checks.
 
-`npm run setup` (`scripts/setup.mjs`) is idempotent. It puts `libmoonshine` + ONNX Runtime from the PyPI wheel (SHA-256 checked) into `resources/moonshine/<platform>/`, and rebuilds `resources/bin/oatmeal-audio` with SwiftPM whenever `native/macos/OatmealAudio/Sources` is newer than the binary. Both outputs are gitignored. The app icon (`build/icon.png`) and the tray PNGs (`resources/tray/`) are committed. `npm run make-icons` renders them from `assets/icon.svg` and `assets/tray.svg`.
+`npm run setup` (`scripts/setup.mjs`) is idempotent. It puts `libmoonshine` + ONNX Runtime from the PyPI wheel (SHA-256 checked) into `resources/moonshine/<platform>/` (on Linux it needs `bsdtar`, since GNU tar can't read zips), and on macOS rebuilds `resources/bin/oatmeal-audio` with SwiftPM whenever `native/macos/OatmealAudio/Sources` is newer than the binary. Both outputs are gitignored. The app icon (`build/icon.png`) and the tray PNGs (`resources/tray/`) are committed. `npm run make-icons` renders them from `assets/icon.svg` and `assets/tray.svg`.
 
 Dev scripts that need a real GGUF and a recorded meeting DB: `npx tsx scripts/eval-map.ts <oatmeal.db> <model.gguf> [runs]` and `npx tsx scripts/eval-notes.ts <oatmeal.db> <model.gguf> [maxSegments]`.
 
@@ -35,6 +36,8 @@ OATMEAL_SCREENSHOT_DIR=/tmp/oatmeal-shots OATMEAL_EXIT_AFTER_NOTES=1 npx electro
 
 This plays WAVs as the two capture channels, transcribes, writes notes, saves screenshots and quits. `src/main/dev.ts` lists every `OATMEAL_*` hook. For example, `OATMEAL_LLM_MODEL_PATH` reuses an existing GGUF, and `OATMEAL_DEMO_PROMPT=1|accept` fakes Zoom taking the mic.
 
+On Linux, `make-test-meeting` uses Piper voices through `uvx` and ffmpeg instead of `say` (see the script header).
+
 In `npm run dev`, macOS gives mic and system-audio permission to the app that launched Electron. It must declare both `NSMicrophoneUsageDescription` and `NSAudioCaptureUsageDescription`. VS Code, Cursor and T3 Code do. Ghostty only declares the mic, so system audio comes through silent. Missing permission produces zeroed buffers, not errors.
 
 ## Architecture
@@ -42,6 +45,7 @@ In `npm run dev`, macOS gives mic and system-audio permission to the app that la
 Four kinds of process. Audio samples and model weights never enter the main process.
 
 - **`oatmeal-audio`** (Swift CLI, `native/macos/OatmealAudio`). `detect` prints JSON lines when the set of processes using the mic or playing audio changes. `capture` writes framed 16 kHz PCM to stdout (`[u8 channel][u32le count][i16le…]`, 0 = mic, 1 = system via a Core Audio process tap) and JSON status lines to stderr. `permissions [--request mic|system]` checks or requests TCC access. The main process runs `detect` and `permissions`. The ASR worker spawns `capture`.
+- **Linux has no helper.** `src/main/pulse.ts` + `detector.ts` replace `detect` (`pactl subscribe`, then `pactl -f json list` of streams and clients; `bundleId` is the executable name). `PipeWireSource` in `workers/asr/sources.ts` replaces `capture` with two `pw-record` processes (mic, and `stream.capture.sink=true` for the default output's monitor). Permissions are always "granted". On Hyprland, `windows.ts` adds a window rule via `hyprctl eval` (Lua config, Hyprland 0.56+) matching the panel's fixed title.
 - **Main** (`src/main`). `index.ts` wires everything together. `Orchestrator` is the state machine (`idle → starting → recording → stopping → idle`), plus the call/notes floating panel, echo filtering, the notes queue and model downloads. `MeetingDetector` debounces helper output into per-app started/stopped events, and `shared/call-end.ts` tells "left the call" from "muted". `Store` (`db.ts`) is `node:sqlite` with FTS5. `WindowManager` manages the main window and the always-on-top prompt panel (`prompt.html`). `AppTray` is the menu-bar icon.
 - **ASR utility process** (`src/workers/asr`). It loads `libmoonshine` through koffi FFI and runs one streaming transcriber per channel. Diarization runs only on the system channel, at a coarse cadence. It emits `line` / `speaker` / `activity` events. **Every FFI call must stay synchronous.** koffi's async calls crashed with SIGBUS, a stack overflow on libuv worker threads.
 - **LLM utility process** (`src/workers/llm`). It runs node-llama-cpp (Metal) or an OpenAI-compatible endpoint (`clients.ts`), downloads GGUFs, preloads when the call app releases the mic, and unloads after 60 s idle. Context size is set per request, never at the model maximum.

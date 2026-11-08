@@ -2,6 +2,9 @@
 // Generates a synthetic two-channel test meeting with macOS `say` voices, for end-to-end testing with
 // OATMEAL_FAKE_AUDIO. "You" goes on the mic channel; two remote participants go on the system channel.
 //   node scripts/make-test-meeting.mjs <outDir> [--short]
+// Elsewhere it uses Piper (via uvx) and ffmpeg. Fetch the voices once into PIPER_VOICES:
+//   cd <dir> && uvx --from piper-tts python -m piper.download_voices en_US-lessac-medium en_GB-alba-medium en_US-ryan-medium
+//   PIPER_VOICES=<dir> node scripts/make-test-meeting.mjs <outDir>
 // Output: <outDir>/mic.wav and <outDir>/system.wav (16 kHz mono 16-bit), same length, time-aligned.
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
@@ -12,7 +15,10 @@ const outDir = path.resolve(process.argv[2] ?? 'test-meeting')
 const short = process.argv.includes('--short')
 fs.mkdirSync(outDir, { recursive: true })
 
-const VOICES = { you: 'Samantha', priya: 'Karen', marcus: 'Daniel' }
+const VOICES =
+  process.platform === 'darwin'
+    ? { you: 'Samantha', priya: 'Karen', marcus: 'Daniel' }
+    : { you: 'en_US-lessac-medium', priya: 'en_GB-alba-medium', marcus: 'en_US-ryan-medium' }
 const CHANNEL = { you: 'mic', priya: 'system', marcus: 'system' }
 
 // A "hop in, say a few words, leave" call.
@@ -58,7 +64,14 @@ const tracks = { mic: [], system: [] }
 let cursor = Math.round(RATE * 0.8)
 script.forEach(([who, text], i) => {
   const file = path.join(tmp, `${i}.wav`)
-  execFileSync('say', ['-v', VOICES[who], '-o', file, '--file-format=WAVE', `--data-format=LEI16@${RATE}`, text])
+  if (process.platform === 'darwin') {
+    execFileSync('say', ['-v', VOICES[who], '-o', file, '--file-format=WAVE', `--data-format=LEI16@${RATE}`, text])
+  } else {
+    if (!process.env.PIPER_VOICES) throw new Error('set PIPER_VOICES to a directory of Piper voices (see the top of this file)')
+    const raw = path.join(tmp, `${i}-piper.wav`)
+    execFileSync('uvx', ['--from', 'piper-tts', 'piper', '-m', path.join(process.env.PIPER_VOICES, `${VOICES[who]}.onnx`), '-f', raw], { input: text })
+    execFileSync('ffmpeg', ['-loglevel', 'error', '-i', raw, '-ar', String(RATE), '-ac', '1', '-c:a', 'pcm_s16le', file])
+  }
   const pcm = readPcm(file)
   tracks[CHANNEL[who]].push({ at: cursor, pcm })
   cursor += pcm.length / 2 + Math.round(RATE * 0.9) // ~0.9 s pause between turns

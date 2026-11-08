@@ -113,9 +113,25 @@ export const MEETING_APPS: { prefix: string; name: string; browser?: boolean }[]
   { prefix: 'com.brave.Browser', name: 'Brave', browser: true },
   { prefix: 'com.vivaldi.Vivaldi', name: 'Vivaldi', browser: true },
   { prefix: 'com.operasoftware.Opera', name: 'Opera', browser: true },
+  // Linux: matched by executable name (PipeWire's application.process.binary), case-insensitively.
+  // Omarchy's web apps (Meet, Zoom, Teams…) are Chromium windows, so they show up as Chromium.
+  { prefix: 'zoom', name: 'Zoom' },
+  { prefix: 'teams-for-linux', name: 'Microsoft Teams' },
+  { prefix: 'slack', name: 'Slack' },
+  { prefix: 'discord', name: 'Discord' },
+  { prefix: 'vesktop', name: 'Discord' },
+  { prefix: 'chromium', name: 'Chromium', browser: true },
+  { prefix: 'chrome', name: 'Google Chrome', browser: true },
+  { prefix: 'brave', name: 'Brave', browser: true },
+  { prefix: 'firefox', name: 'Firefox', browser: true },
+  { prefix: 'msedge', name: 'Microsoft Edge', browser: true },
+  { prefix: 'vivaldi', name: 'Vivaldi', browser: true },
+  { prefix: 'opera', name: 'Opera', browser: true },
+  { prefix: 'helium', name: 'Helium', browser: true },
 ]
 
 export function matchMeetingApp(bundleId: string): { name: string; browser: boolean } | null {
-  const hit = MEETING_APPS.find((a) => bundleId.startsWith(a.prefix))
+  const id = bundleId.toLowerCase()
+  const hit = MEETING_APPS.find((a) => id.startsWith(a.prefix.toLowerCase()))
   return hit ? { name: hit.name, browser: !!hit.browser } : null
 }

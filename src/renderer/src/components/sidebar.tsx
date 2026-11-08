@@ -26,7 +26,17 @@ function StatusBadge({ item }: { item: MeetingListItem }) {
   }
 }
 
-export function Sidebar({ view, onNavigate, recording }: { view: View; onNavigate: (v: View) => void; recording: RecordingState }) {
+export function Sidebar({
+  view,
+  onNavigate,
+  recording,
+  className,
+}: {
+  view: View
+  onNavigate: (v: View) => void
+  recording: RecordingState
+  className?: string
+}) {
   const [query, setQuery] = useState('')
   const meetings = useMeetings(query)
   const groups = useMemo(() => {
@@ -40,9 +50,9 @@ export function Sidebar({ view, onNavigate, recording }: { view: View; onNavigat
   }, [meetings])
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
+    <aside className={cn('flex w-72 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground', className)}>
       {/* Space for the macOS traffic lights; draggable like a title bar. */}
-      <div className="h-12 shrink-0 [-webkit-app-region:drag]" />
+      <div className="h-3 shrink-0 mac:h-12 [-webkit-app-region:drag]" />
       <div className="space-y-2 px-3 pb-3">
         <RecordButton recording={recording} className="w-full" />
         <div className="relative">

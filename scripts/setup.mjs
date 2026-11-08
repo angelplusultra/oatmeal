@@ -2,7 +2,8 @@
 // Prepares native pieces that are not npm packages:
 //   1. resources/moonshine/<platform>/ — the native Moonshine library + ONNX Runtime, extracted from the
 //      official moonshine-voice wheel on PyPI (MIT). Checked against PyPI's published SHA-256.
-//   2. resources/bin/oatmeal-audio — the macOS audio helper, built from native/macos with SwiftPM.
+//   2. resources/bin/oatmeal-audio — the macOS audio helper, built from native/macos with SwiftPM (macOS only;
+//      Linux captures through PipeWire's pw-record and pactl instead).
 // Idempotent: skips work whose outputs are already up to date.
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -19,8 +20,10 @@ const platformKey = `${process.platform}-${process.arch}`
 const WHEELS = {
   'darwin-arm64': { tag: 'macosx_15_0_arm64', files: ['libmoonshine.dylib', 'libonnxruntime.1.23.2.dylib'] },
   'win32-x64': { tag: 'win_amd64', files: ['moonshine.dll', 'onnxruntime.dll'] },
-  'linux-x64': { tag: 'manylinux_2_34_x86_64', files: ['libmoonshine.so', 'libonnxruntime.so.1.23.2'] },
-  'linux-arm64': { tag: 'manylinux_2_34_aarch64', files: ['libmoonshine.so', 'libonnxruntime.so.1.23.2'] },
+  // The Linux wheels are auditwheel-repaired: ONNX Runtime sits in moonshine_voice.libs/ under a hashed
+  // name, and libmoonshine.so finds it through RPATH $ORIGIN once both are in the same directory.
+  'linux-x64': { tag: 'manylinux_2_34_x86_64', files: ['libmoonshine.so', '../moonshine_voice.libs/libonnxruntime-13ab8084.so.1'] },
+  'linux-arm64': { tag: 'manylinux_2_34_aarch64', files: ['libmoonshine.so', '../moonshine_voice.libs/libonnxruntime-ab8c4363.so.1'] },
 }
 
 function log(msg) {
@@ -51,14 +54,15 @@ async function fetchMoonshine() {
   try {
     const wheelPath = path.join(tmp, file.filename)
     fs.writeFileSync(wheelPath, bytes)
-    // Wheels are zip files; bsdtar (macOS, Windows 10+) and most Linux tars can read them.
-    execFileSync('tar', ['-xf', wheelPath, '-C', tmp], { stdio: 'inherit' })
+    // Wheels are zip files. `tar` is bsdtar on macOS and Windows 10+; GNU tar on Linux can't read zips,
+    // so use bsdtar there (libarchive, a pacman dependency on Arch).
+    execFileSync(process.platform === 'linux' ? 'bsdtar' : 'tar', ['-xf', wheelPath, '-C', tmp], { stdio: 'inherit' })
     fs.rmSync(dest, { recursive: true, force: true })
     fs.mkdirSync(dest, { recursive: true })
     for (const name of wheel.files) {
       const src = path.join(tmp, 'moonshine_voice', name)
       if (!fs.existsSync(src)) throw new Error(`${name} not found in wheel`)
-      fs.copyFileSync(src, path.join(dest, name))
+      fs.copyFileSync(src, path.join(dest, path.basename(name)))
     }
     const license = path.join(tmp, `moonshine_voice-${MOONSHINE_VERSION}.dist-info`, 'licenses', 'LICENSE')
     if (fs.existsSync(license)) fs.copyFileSync(license, path.join(dest, 'LICENSE'))

@@ -1,31 +1,43 @@
-import { app, Menu, nativeImage, Tray } from 'electron'
+import { app, Menu, nativeImage, nativeTheme, Tray } from 'electron'
 import path from 'node:path'
 import type { RecordingState } from '@shared/types'
 
 /** Menu bar icon: shows whether Oatmeal is recording and offers start/stop. */
 export class AppTray {
   private readonly tray: Tray
-  private readonly idleIcon: Electron.NativeImage
+  private readonly template: Electron.NativeImage
   private readonly recordingIcon: Electron.NativeImage
   private timer: NodeJS.Timeout | null = null
+  private recording = false
 
   constructor(
     iconDir: string,
     private readonly actions: { start(): void; stop(): void; open(): void },
   ) {
-    this.idleIcon = nativeImage.createFromPath(path.join(iconDir, 'trayTemplate.png'))
-    this.idleIcon.setTemplateImage(true)
+    this.template = nativeImage.createFromPath(path.join(iconDir, 'trayTemplate.png'))
+    this.template.setTemplateImage(true)
     this.recordingIcon = nativeImage.createFromPath(path.join(iconDir, 'recording.png'))
-    this.tray = new Tray(this.idleIcon)
+    this.tray = new Tray(this.idleIcon())
     this.tray.setToolTip('Oatmeal')
     this.update({ kind: 'idle' })
+    // On Linux the desktop's color scheme arrives after launch (and changes with Omarchy themes).
+    nativeTheme.on('updated', () => {
+      if (!this.recording) this.tray.setImage(this.idleIcon())
+    })
+  }
+
+  /** Only macOS recolors template images. Elsewhere, paint the black glyph to suit the bar. */
+  private idleIcon(): Electron.NativeImage {
+    if (process.platform === 'darwin') return this.template
+    return tint(this.template, nativeTheme.shouldUseDarkColors ? 255 : 0)
   }
 
   update(state: RecordingState) {
     if (this.timer) clearInterval(this.timer)
     this.timer = null
     const recording = state.kind === 'recording'
-    this.tray.setImage(recording ? this.recordingIcon : this.idleIcon)
+    this.recording = recording
+    this.tray.setImage(recording ? this.recordingIcon : this.idleIcon())
     const render = () => {
       let status = 'Not recording'
       if (state.kind === 'recording') {
@@ -56,4 +68,12 @@ export class AppTray {
     if (this.timer) clearInterval(this.timer)
     this.tray.destroy()
   }
+}
+
+/** Same alpha, every pixel set to one gray level. The bitmap is premultiplied BGRA. */
+function tint(image: Electron.NativeImage, level: number): Electron.NativeImage {
+  const { width, height } = image.getSize()
+  const bitmap = image.toBitmap()
+  for (let i = 0; i < bitmap.length; i += 4) bitmap.fill(Math.round((level * bitmap[i + 3]) / 255), i, i + 3)
+  return nativeImage.createFromBitmap(bitmap, { width, height })
 }
