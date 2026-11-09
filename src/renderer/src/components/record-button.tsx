@@ -9,13 +9,20 @@ export function RecordButton({ recording, className, size = 'default' }: { recor
   const now = useNow(recording.kind === 'recording')
   if (recording.kind === 'recording') {
     return (
-      <Button variant="destructive" size={size} className={cn('justify-start', className)} onClick={() => void window.oatmeal.stopRecording()}>
+      <Button
+        size={size}
+        className={cn('justify-start bg-live-soft text-live hover:bg-live-soft/70', className)}
+        onClick={() => void window.oatmeal.stopRecording()}
+      >
         <span className="relative flex size-2">
-          <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-500 opacity-60" />
-          <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+          <span className="absolute inline-flex size-full animate-ping rounded-full bg-live opacity-60" />
+          <span className="relative inline-flex size-2 rounded-full bg-live" />
         </span>
-        Stop · {formatClock(now - recording.startedAt)}
-        <SquareIcon className="ml-auto size-3.5 fill-current" />
+        Stop recording
+        <span className="ml-auto flex items-center gap-2 font-mono text-xs tabular-nums">
+          {formatClock(now - recording.startedAt)}
+          <SquareIcon className="size-3 fill-current" />
+        </span>
       </Button>
     )
   }

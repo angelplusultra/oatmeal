@@ -5,11 +5,9 @@
 import {
   ArrowLeftIcon,
   AudioLinesIcon,
-  CheckCircle2Icon,
   FileIcon,
   FileTextIcon,
   Loader2Icon,
-  LockIcon,
   MicIcon,
   Volume2Icon,
 } from 'lucide-react'
@@ -17,8 +15,8 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { LLM_MODELS, asrModel, llmModel } from '@shared/models'
 import type { DownloadProgress, ModelKind, ModelStatus, PermissionState, PermissionStatus, Settings } from '@shared/types'
+import { DoneMark, PrivacyNote } from '@/components/pantry'
 import { EndpointFields } from '@/components/settings-view'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
@@ -85,14 +83,14 @@ function StepHeader({ steps, current, onBack }: { steps: Exclude<StepId, 'welcom
         <Button variant="ghost" size="sm" className="-ml-2.5 text-muted-foreground" onClick={onBack}>
           <ArrowLeftIcon /> Back
         </Button>
-        <span className="text-xs text-muted-foreground tabular-nums">
+        <span className="font-mono text-[11.5px] text-muted-foreground tabular-nums">
           Step {current + 1} of {steps.length}
         </span>
       </div>
       <ol className="grid gap-2" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
         {steps.map((id, i) => (
           <li key={id} className="space-y-1.5">
-            <div className={cn('h-1 rounded-full', i <= current ? 'bg-primary' : 'bg-muted')} />
+            <div className={cn('h-1.5 rounded-full', i <= current ? 'bg-brand' : 'bg-track')} />
             <div className={cn('text-xs', i === current ? 'font-medium text-foreground' : 'text-muted-foreground')}>{STEP_LABELS[id]}</div>
           </li>
         ))}
@@ -104,8 +102,8 @@ function StepHeader({ steps, current, onBack }: { steps: Exclude<StepId, 'welcom
 function StepTitle({ title, description }: { title: string; description: React.ReactNode }) {
   return (
     <div className="mb-6 space-y-2">
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-      <p className="text-muted-foreground">{description}</p>
+      <h1 className="font-heading text-[32px] leading-tight font-medium tracking-[-0.01em]">{title}</h1>
+      <p className="text-[15px] leading-relaxed text-pretty text-muted-foreground">{description}</p>
     </div>
   )
 }
@@ -114,7 +112,7 @@ function StepTitle({ title, description }: { title: string; description: React.R
 function Item({ icon, title, description, children }: { icon: React.ReactNode; title: React.ReactNode; description: React.ReactNode; children?: React.ReactNode }) {
   return (
     <li className="flex gap-3 p-4">
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground [&_svg]:size-4">{icon}</div>
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-text [&_svg]:size-4">{icon}</div>
       <div className="min-w-0 flex-1 space-y-0.5">
         <div className="text-sm font-medium">{title}</div>
         <div className="text-sm text-muted-foreground">{description}</div>
@@ -125,32 +123,42 @@ function Item({ icon, title, description, children }: { icon: React.ReactNode; t
 }
 
 const Done = ({ label }: { label: string }) => (
-  <Badge variant="secondary">
-    <CheckCircle2Icon className="text-emerald-600" /> {label}
-  </Badge>
+  <span className="pt-0.5">
+    <DoneMark label={label} />
+  </span>
 )
 
+/** The bordered list the permission and model rows sit in. */
+const LIST = 'divide-y rounded-xl border bg-card shadow-card'
+
 // ---------------------------------------------------------------- welcome
+
+const SETUP_STEPS = [
+  ...(isMac ? ['Let Oatmeal hear your microphone and your calls.'] : []),
+  'Download the speech and notes models (one time).',
+  'See what happens on your first call.',
+]
 
 function Welcome({ onNext }: { onNext: () => void }) {
   return (
     <div className="space-y-8">
-      <img src={iconUrl} alt="" className="size-16" />
-      <div className="space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight">Welcome to Oatmeal</h1>
-        <p className="text-lg text-muted-foreground">
+      <div className="flex flex-col gap-3">
+        <img src={iconUrl} alt="" className="-ml-1.5 size-15" />
+        <h1 className="font-heading text-[52px] leading-[1.05] font-medium tracking-[-0.01em]">Welcome to Oatmeal</h1>
+        <p className="text-[15px] leading-relaxed text-pretty text-muted-foreground">
           Oatmeal transcribes your calls and writes the notes: a summary, decisions, action items and open questions.
         </p>
-        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <LockIcon className="size-3.5 shrink-0" /> Everything runs on this {machine}. Audio is never saved, and nothing is uploaded.
-        </p>
+        <PrivacyNote>Everything runs on this {machine}. Audio is never saved, and nothing is uploaded.</PrivacyNote>
       </div>
-      <div className="space-y-2">
-        <p className="text-sm font-medium">Setup takes a few minutes:</p>
-        <ol className="list-inside list-decimal space-y-1 text-sm text-muted-foreground">
-          {isMac && <li>Let Oatmeal hear your microphone and your calls.</li>}
-          <li>Download the speech and notes models (one time).</li>
-          <li>See what happens on your first call.</li>
+      <div className="space-y-3 rounded-xl border bg-card p-5 shadow-card">
+        <p className="font-heading text-[15px] font-medium text-muted-foreground italic">Setup takes a few minutes</p>
+        <ol className="space-y-2.5 text-sm">
+          {SETUP_STEPS.map((text, i) => (
+            <li key={text} className="flex items-center gap-3">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-soft font-mono text-[11px] text-brand-text">{i + 1}</span>
+              {text}
+            </li>
+          ))}
         </ol>
       </div>
       <Button size="lg" onClick={onNext}>
@@ -202,7 +210,7 @@ function PermissionsStep({
         title="Let Oatmeal hear your calls"
         description={`macOS asks you to allow two things. Oatmeal turns audio into text on this ${machine} as it arrives, and never saves it.`}
       />
-      <ul className="divide-y rounded-xl border">
+      <ul className={LIST}>
         <PermissionItem
           kind="microphone"
           icon={<MicIcon />}
@@ -287,7 +295,7 @@ function DownloadState({ ready, download, size }: { ready: boolean; download: Do
     return (
       <div className="flex w-36 items-center gap-2 pt-1.5">
         <Progress value={pct ?? 0} className="flex-1" />
-        <span className="w-9 text-right text-xs text-muted-foreground tabular-nums">{pct !== null ? `${pct}%` : '…'}</span>
+        <span className="w-9 text-right font-mono text-[11.5px] text-muted-foreground tabular-nums">{pct !== null ? `${pct}%` : '…'}</span>
       </div>
     )
   }
@@ -298,7 +306,7 @@ function DownloadState({ ready, download, size }: { ready: boolean; download: Do
       </span>
     )
   }
-  return <span className="pt-0.5 text-sm text-muted-foreground tabular-nums">{size}</span>
+  return <span className="pt-0.5 font-mono text-[11.5px] text-muted-foreground tabular-nums">{size}</span>
 }
 
 function ModelsStep({
@@ -390,7 +398,7 @@ function ModelsStep({
         title="Download the models"
         description={`Two AI models run on this ${machine}: one to transcribe, one to write notes. They download once.`}
       />
-      <ul className="divide-y rounded-xl border">
+      <ul className={LIST}>
         <Item icon={<AudioLinesIcon />} title="Speech model" description={`${asr.name}. Turns what’s said into text as the call happens.`}>
           <DownloadState ready={speechReady} download={asrDownload} size={formatBytes(asr.approxBytes)} />
         </Item>
@@ -433,7 +441,7 @@ function ModelsStep({
       </ul>
 
       {usingServer && (
-        <div className="mt-4 rounded-xl border p-4">
+        <div className="mt-4 rounded-xl border bg-card p-4 shadow-card">
           <EndpointFields settings={settings} update={set} />
         </div>
       )}
@@ -484,7 +492,7 @@ function ReadyStep({ status, settings, onDone }: { status: ModelStatus | null; s
           ['Your notes arrive', `When the call ends, notes are written on this ${machine}, and the panel offers to open them.`],
         ].map(([title, body], i) => (
           <li key={title} className="flex gap-3">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">{i + 1}</span>
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand font-mono text-xs font-medium text-brand-foreground">{i + 1}</span>
             <div>
               <div className="text-sm font-medium">{title}</div>
               <div className="text-sm text-muted-foreground">{body}</div>
@@ -493,7 +501,7 @@ function ReadyStep({ status, settings, onDone }: { status: ModelStatus | null; s
         ))}
       </ol>
 
-      <div className="mt-8 space-y-4 rounded-xl border p-4">
+      <div className="mt-8 space-y-4 rounded-xl border bg-card p-4 shadow-card">
         <p className="text-sm text-muted-foreground">
           Oatmeal lives in the {isMac ? 'menu bar' : 'system tray'}. Closing this window doesn’t quit it, and you can start recording any time from there.
         </p>

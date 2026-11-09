@@ -13,8 +13,11 @@ export class WindowManager {
 
   constructor(private readonly outDir: string) {}
 
-  private background() {
-    return nativeTheme.shouldUseDarkColors ? '#0a0a0a' : '#ffffff'
+  /** Pantry's page (or card, for the panel) color, so a window never flashes the wrong one before it paints. */
+  private background(surface: 'page' | 'card' = 'page') {
+    const dark = nativeTheme.shouldUseDarkColors
+    if (surface === 'card') return dark ? '#26211c' : '#fcf9f3'
+    return dark ? '#1b1815' : '#f7f2e9'
   }
 
   private webPreferences(): Electron.WebPreferences {
@@ -94,7 +97,7 @@ export class WindowManager {
   showPanel() {
     if (!this.panel || this.panel.isDestroyed()) {
       const width = 380
-      const height = 160
+      const height = 176
       floatPanelOnHyprland()
       const { workArea } = screen.getPrimaryDisplay()
       const win = new BrowserWindow({
@@ -114,7 +117,7 @@ export class WindowManager {
         show: false,
         title: PANEL_TITLE,
         type: process.platform === 'darwin' ? 'panel' : undefined,
-        backgroundColor: this.background(),
+        backgroundColor: this.background('card'),
         webPreferences: this.webPreferences(),
       })
       win.setAlwaysOnTop(true, 'floating')

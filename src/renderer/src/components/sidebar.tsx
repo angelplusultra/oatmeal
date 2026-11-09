@@ -14,7 +14,12 @@ import { cn } from '@/lib/utils'
 function StatusBadge({ item }: { item: MeetingListItem }) {
   switch (item.status) {
     case 'recording':
-      return <Badge variant="destructive">Live</Badge>
+      return (
+        <span className="flex items-center gap-1 font-medium text-live">
+          <span className="size-1.5 rounded-full bg-live" />
+          Live
+        </span>
+      )
     case 'summarizing':
       return <Badge variant="secondary">Writing notes…</Badge>
     case 'failed':
@@ -68,7 +73,7 @@ export function Sidebar({
           )}
           {groups.map((group) => (
             <div key={group.day} className="mb-2">
-              <div className="px-2 pt-2 pb-1 text-xs font-medium text-muted-foreground">{group.day}</div>
+              <div className="px-2 pt-2.5 pb-1 font-heading text-[15px] text-muted-foreground italic">{group.day}</div>
               {group.items.map((m) => {
                 const active = view.kind === 'meeting' && view.id === m.id
                 return (
@@ -76,7 +81,7 @@ export function Sidebar({
                     key={m.id}
                     onClick={() => onNavigate({ kind: 'meeting', id: m.id })}
                     className={cn(
-                      'flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent',
+                      'flex w-full flex-col gap-0.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-sidebar-accent',
                       active && 'bg-sidebar-accent text-sidebar-accent-foreground',
                     )}
                   >

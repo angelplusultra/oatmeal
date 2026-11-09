@@ -1,4 +1,4 @@
-import { AlertCircleIcon, Loader2Icon, SparklesIcon } from 'lucide-react'
+import { AlertCircleIcon, Loader2Icon, LockIcon, SparklesIcon } from 'lucide-react'
 import { formatTimestamp } from '@shared/transcript'
 import type { Meeting, MeetingSummary } from '@shared/types'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -26,16 +26,30 @@ function Timestamp({ ms, onJump }: { ms: number | null; onJump: (ms: number) => 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-2">
-      <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">{title}</h2>
+      <h2 className="font-heading text-[15px] font-medium text-muted-foreground italic">{title}</h2>
       {children}
     </section>
+  )
+}
+
+/** A list with honey em-dash bullets. */
+function DashList({ children }: { children: React.ReactNode }) {
+  return <ul className="space-y-1.5 text-sm leading-relaxed">{children}</ul>
+}
+
+function Dash({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex gap-2.5">
+      <span className="shrink-0 text-brand-text">—</span>
+      <span className="min-w-0">{children}</span>
+    </li>
   )
 }
 
 function Summary({ meeting, summary, onJump }: { meeting: Meeting; summary: MeetingSummary; onJump: (ms: number) => void }) {
   return (
     <div className="space-y-8">
-      {summary.tldr && <p className="text-base leading-relaxed">{summary.tldr}</p>}
+      {summary.tldr && <p className="font-heading text-[19px] leading-[1.55] text-pretty">{summary.tldr}</p>}
 
       {summary.actionItems.length > 0 && (
         <Section title="Action items">
@@ -65,14 +79,14 @@ function Summary({ meeting, summary, onJump }: { meeting: Meeting; summary: Meet
 
       {summary.decisions.length > 0 && (
         <Section title="Decisions">
-          <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed">
+          <DashList>
             {summary.decisions.map((d, i) => (
-              <li key={i}>
+              <Dash key={i}>
                 {d.text}
                 <Timestamp ms={d.ts} onJump={onJump} />
-              </li>
+              </Dash>
             ))}
-          </ul>
+          </DashList>
         </Section>
       )}
 
@@ -81,12 +95,12 @@ function Summary({ meeting, summary, onJump }: { meeting: Meeting; summary: Meet
           <div className="space-y-4">
             {summary.keyPoints.map((group, i) => (
               <div key={i}>
-                <h3 className="mb-1 font-medium">{group.topic}</h3>
-                <ul className="list-disc space-y-1 pl-5 text-sm leading-relaxed">
+                <h3 className="mb-1 text-sm font-medium">{group.topic}</h3>
+                <DashList>
                   {group.points.map((p, j) => (
-                    <li key={j}>{p}</li>
+                    <Dash key={j}>{p}</Dash>
                   ))}
-                </ul>
+                </DashList>
               </div>
             ))}
           </div>
@@ -95,15 +109,16 @@ function Summary({ meeting, summary, onJump }: { meeting: Meeting; summary: Meet
 
       {summary.openQuestions.length > 0 && (
         <Section title="Open questions">
-          <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed">
+          <DashList>
             {summary.openQuestions.map((q, i) => (
-              <li key={i}>{q}</li>
+              <Dash key={i}>{q}</Dash>
             ))}
-          </ul>
+          </DashList>
         </Section>
       )}
 
-      <p className="text-xs text-muted-foreground">
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <LockIcon className="size-3 shrink-0" strokeWidth={2.4} />
         Written by {summary.model} on this {machine} · {new Date(summary.generatedAt).toLocaleString()}
       </p>
     </div>

@@ -2,14 +2,33 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/newsreader/opsz-italic.css";
 
 @custom-variant dark (&:is(.dark *));
 /* macOS-only spacing, e.g. room for the traffic lights. main.tsx sets data-platform. */
 @custom-variant mac (&:where([data-platform=mac], [data-platform=mac] *));
 
 @theme inline {
-  --font-heading: var(--font-sans);
+  --font-heading: 'Newsreader Variable', Georgia, serif;
   --font-sans: 'Geist Variable', sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-text: var(--brand-text);
+  --color-live: var(--live);
+  --color-live-soft: var(--live-soft);
+  --color-faint: var(--faint);
+  --color-track: var(--track);
+  --color-speaker-1: var(--speaker-1);
+  --color-speaker-2: var(--speaker-2);
+  --color-speaker-3: var(--speaker-3);
+  --color-speaker-4: var(--speaker-4);
+  --color-speaker-5: var(--speaker-5);
+  --color-speaker-6: var(--speaker-6);
+  --shadow-card: var(--card-shadow);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -50,73 +69,118 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Pantry: warm oat neutrals, a bookish serif for headings, and a honey accent. */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --background: #f7f2e9;
+  --foreground: #2a231d;
+  --card: #fcf9f3;
+  --card-foreground: #2a231d;
+  --popover: #fcf9f3;
+  --popover-foreground: #2a231d;
+  --primary: #2a231d;
+  --primary-foreground: #f7f2e9;
+  --secondary: #ede3d2;
+  --secondary-foreground: #2a231d;
+  --muted: #ede3d2;
+  --muted-foreground: #76695b;
+  --accent: #ede3d2;
+  --accent-foreground: #2a231d;
+  --destructive: #c2412d;
+  --border: rgb(70 45 20 / 13%);
+  --input: rgb(70 45 20 / 17%);
+  --ring: oklch(0.58 0.1 65);
+  --chart-1: oklch(0.58 0.1 65);
+  --chart-2: oklch(0.5 0.08 150);
+  --chart-3: oklch(0.5 0.09 20);
+  --chart-4: oklch(0.5 0.07 250);
+  --chart-5: oklch(0.5 0.08 320);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #efe7d8;
+  --sidebar-foreground: #2a231d;
+  --sidebar-primary: #2a231d;
+  --sidebar-primary-foreground: #f7f2e9;
+  --sidebar-accent: #e4d9c5;
+  --sidebar-accent-foreground: #2a231d;
+  --sidebar-border: rgb(70 45 20 / 13%);
+  --sidebar-ring: oklch(0.58 0.1 65);
+  /* Pantry extras. Honey: --brand fills (checks, progress), --brand-soft tints, --brand-text for text on the page. */
+  --brand: oklch(0.58 0.1 65);
+  --brand-foreground: #fffbf4;
+  --brand-soft: oklch(0.93 0.035 75);
+  --brand-text: oklch(0.48 0.09 60);
+  /* Recording. */
+  --live: #c2412d;
+  --live-soft: oklch(0.93 0.04 35);
+  --faint: #b9ad9c;
+  --track: #e6dccb;
+  --card-shadow: inset 0 1px 0 rgb(255 255 255 / 80%), 0 1px 2px rgb(70 45 20 / 6%);
+  /* Other speakers in the transcript ("me" is honey). */
+  --speaker-1: oklch(0.5 0.08 150);
+  --speaker-2: oklch(0.5 0.09 20);
+  --speaker-3: oklch(0.5 0.08 245);
+  --speaker-4: oklch(0.5 0.08 320);
+  --speaker-5: oklch(0.5 0.07 195);
+  --speaker-6: oklch(0.52 0.09 100);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #1b1815;
+  --foreground: #f1e9dc;
+  --card: #26211c;
+  --card-foreground: #f1e9dc;
+  --popover: #26211c;
+  --popover-foreground: #f1e9dc;
+  --primary: #f1e9dc;
+  --primary-foreground: #1b1815;
+  --secondary: #342d26;
+  --secondary-foreground: #f1e9dc;
+  --muted: #342d26;
+  --muted-foreground: #a79a89;
+  --accent: #302a23;
+  --accent-foreground: #f1e9dc;
+  --destructive: #f0715c;
+  --border: rgb(255 235 205 / 9%);
+  --input: rgb(255 235 205 / 13%);
+  --ring: oklch(0.8 0.1 75);
+  --chart-1: oklch(0.8 0.1 75);
+  --chart-2: oklch(0.8 0.08 150);
+  --chart-3: oklch(0.78 0.09 25);
+  --chart-4: oklch(0.78 0.07 250);
+  --chart-5: oklch(0.78 0.08 320);
+  --sidebar: #221e1a;
+  --sidebar-foreground: #f1e9dc;
+  --sidebar-primary: #f1e9dc;
+  --sidebar-primary-foreground: #1b1815;
+  --sidebar-accent: #302a23;
+  --sidebar-accent-foreground: #f1e9dc;
+  --sidebar-border: rgb(255 235 205 / 9%);
+  --sidebar-ring: oklch(0.8 0.1 75);
+  --brand: oklch(0.8 0.1 75);
+  --brand-foreground: #1b1815;
+  --brand-soft: oklch(0.3 0.04 70);
+  --brand-text: oklch(0.84 0.09 78);
+  --live: #f0715c;
+  --live-soft: oklch(0.32 0.06 30);
+  --faint: #5e554b;
+  --track: #352e27;
+  --card-shadow: none;
+  --speaker-1: oklch(0.8 0.08 150);
+  --speaker-2: oklch(0.78 0.09 25);
+  --speaker-3: oklch(0.78 0.07 245);
+  --speaker-4: oklch(0.78 0.08 320);
+  --speaker-5: oklch(0.8 0.07 195);
+  --speaker-6: oklch(0.82 0.09 100);
+}
+
+/* The live control's level bars. */
+@keyframes oatmeal-level {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1);
+  }
 }
 
 @layer base {

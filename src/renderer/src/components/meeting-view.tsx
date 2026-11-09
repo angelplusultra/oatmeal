@@ -1,11 +1,10 @@
-import { CopyIcon, DownloadIcon, MoreHorizontalIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react'
+import { CopyIcon, DownloadIcon, Loader2Icon, MoreHorizontalIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { ExportFormat } from '@shared/api'
 import type { RecordingState } from '@shared/types'
 import type { View } from '@/App'
 import { NotesView } from '@/components/notes-view'
-import { RecordButton } from '@/components/record-button'
 import { TranscriptView } from '@/components/transcript-view'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,14 +19,44 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useMeeting } from '@/hooks/use-oatmeal'
-import { formatDate, formatDuration, formatTime } from '@/lib/format'
+import { useEvent, useMeeting, useNow } from '@/hooks/use-oatmeal'
+import { formatClock, formatDate, formatDuration, formatTime } from '@/lib/format'
+import { cn } from '@/lib/utils'
+
+/** Underline tabs that sit on the header's bottom border. */
+const TAB = 'h-auto flex-none px-0 pt-0 pb-2.5 text-[13.5px] group-data-horizontal/tabs:after:bottom-[-1px] group-data-horizontal/tabs:after:h-[2px]'
 
 const run = (promise: Promise<unknown>, success?: string) =>
   promise.then(
     () => success && toast.success(success),
     (error: Error) => toast.error(error.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')),
   )
+
+/** While recording: level bars that move when someone is talking, the elapsed time, and Stop. */
+function LiveControl({ recording }: { recording: RecordingState }) {
+  const now = useNow(recording.kind === 'recording')
+  const [speaking, setSpeaking] = useState({ mic: false, system: false })
+  useEvent('activity', ({ channel, active }) => setSpeaking((s) => ({ ...s, [channel]: active })))
+  const active = speaking.mic || speaking.system
+  return (
+    <div className="flex h-9 items-center gap-2.5 rounded-lg border bg-card pr-1.5 pl-3 shadow-card">
+      <div className="flex h-4 items-center gap-0.5" aria-hidden>
+        {[6, 12, 16, 9, 5].map((h, i) => (
+          <span
+            key={i}
+            className={cn('w-[3px] origin-center rounded-full bg-live', active && 'animate-[oatmeal-level_0.9s_ease-in-out_infinite]')}
+            style={{ height: h, animationDelay: `${i * 120}ms` }}
+          />
+        ))}
+      </div>
+      <span className="font-mono text-[12.5px] tabular-nums">{recording.kind === 'recording' ? formatClock(now - recording.startedAt) : '0:00'}</span>
+      <Button size="sm" className="bg-live text-white hover:bg-live/85" disabled={recording.kind !== 'recording'} onClick={() => void window.oatmeal.stopRecording()}>
+        {recording.kind === 'starting' && <Loader2Icon className="animate-spin" />}
+        Stop
+      </Button>
+    </div>
+  )
+}
 
 export function MeetingView({ meetingId, recording, onNavigate }: { meetingId: string; recording: RecordingState; onNavigate: (v: View) => void }) {
   const { meeting, segments } = useMeeting(meetingId)
@@ -59,7 +88,7 @@ export function MeetingView({ meetingId, recording, onNavigate }: { meetingId: s
 
   return (
     <Tabs value={activeTab} onValueChange={setTab} className="flex h-full min-h-0 flex-col gap-0">
-      <header className="shrink-0 border-b px-4 pt-5 pb-3 sm:px-8 mac:pt-10 [-webkit-app-region:drag]">
+      <header className="shrink-0 border-b px-4 pt-5 sm:px-8 mac:pt-11 [-webkit-app-region:drag]">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1 [-webkit-app-region:no-drag]">
             {editing ? (
@@ -75,10 +104,10 @@ export function MeetingView({ meetingId, recording, onNavigate }: { meetingId: s
                     setEditing(false)
                   }
                 }}
-                className="h-9 text-xl font-semibold"
+                className="h-10 font-heading text-[28px] font-medium tracking-[-0.01em] md:text-[28px]"
               />
             ) : (
-              <h1 className="cursor-text truncate text-xl font-semibold tracking-tight" title="Click to rename" onClick={() => setEditing(true)}>
+              <h1 className="cursor-text truncate font-heading text-[28px] leading-tight font-medium tracking-[-0.01em]" title="Click to rename" onClick={() => setEditing(true)}>
                 {meeting.title}
               </h1>
             )}
@@ -90,7 +119,7 @@ export function MeetingView({ meetingId, recording, onNavigate }: { meetingId: s
           </div>
           <div className="flex items-center gap-2 [-webkit-app-region:no-drag]">
             {isLive ? (
-              <RecordButton recording={recording} />
+              <LiveControl recording={recording} />
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -139,9 +168,13 @@ export function MeetingView({ meetingId, recording, onNavigate }: { meetingId: s
             )}
           </div>
         </div>
-        <TabsList className="mt-4 [-webkit-app-region:no-drag]">
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="transcript">Transcript</TabsTrigger>
+        <TabsList variant="line" className="mt-4 h-auto gap-5 p-0 [-webkit-app-region:no-drag]">
+          <TabsTrigger value="notes" className={TAB}>
+            Notes
+          </TabsTrigger>
+          <TabsTrigger value="transcript" className={TAB}>
+            Transcript
+          </TabsTrigger>
         </TabsList>
       </header>
       <TabsContent value="notes" className="min-h-0 flex-1">

@@ -39,17 +39,11 @@ export function formatBytes(bytes: number): string {
   return `${Math.round(bytes / 1e3)} KB`
 }
 
-const SPEAKER_COLORS = [
-  'text-sky-600 dark:text-sky-400',
-  'text-emerald-600 dark:text-emerald-400',
-  'text-amber-600 dark:text-amber-400',
-  'text-violet-600 dark:text-violet-400',
-  'text-rose-600 dark:text-rose-400',
-  'text-teal-600 dark:text-teal-400',
-]
+// Muted, warm hues from the Pantry palette (globals.css). "You" is honey.
+const SPEAKER_COLORS = ['text-speaker-1', 'text-speaker-2', 'text-speaker-3', 'text-speaker-4', 'text-speaker-5', 'text-speaker-6']
 
 export function speakerColor(key: string): string {
-  if (key === 'me') return 'text-foreground'
+  if (key === 'me') return 'text-brand-text'
   const m = /^sys:(\d+)$/.exec(key)
   return SPEAKER_COLORS[m ? Number(m[1]) % SPEAKER_COLORS.length : 0]
 }

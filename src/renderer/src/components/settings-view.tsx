@@ -35,7 +35,7 @@ function ModelDownload({ kind, installed, sizeLabel, status }: { kind: ModelKind
   if (installed && !running) {
     return (
       <Badge variant="secondary">
-        <CheckCircle2Icon className="text-emerald-600" /> Downloaded
+        <CheckCircle2Icon className="text-brand-text" /> Downloaded
       </Badge>
     )
   }
@@ -83,7 +83,7 @@ function PermissionRow({ kind, state, onRequest }: { kind: 'microphone' | 'syste
   return (
     <Row title={title} description={description}>
       <Badge variant={state === 'granted' ? 'secondary' : 'outline'}>
-        {state === 'granted' && <CheckCircle2Icon className="text-emerald-600" />}
+        {state === 'granted' && <CheckCircle2Icon className="text-brand-text" />}
         {state ? PERMISSION_LABEL[state] : '…'}
       </Badge>
       {state !== 'granted' &&
@@ -251,7 +251,7 @@ export function SettingsView({ onRunSetup }: { onRunSetup: () => void }) {
       <div className="h-5 mac:h-12 [-webkit-app-region:drag]" />
       <div className="mx-auto max-w-3xl space-y-6 px-4 pb-12 sm:px-8">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
+          <h1 className="font-heading text-[28px] leading-tight font-medium tracking-[-0.01em]">Settings</h1>
           <Button variant="ghost" size="sm" onClick={onRunSetup}>
             Run setup again
           </Button>

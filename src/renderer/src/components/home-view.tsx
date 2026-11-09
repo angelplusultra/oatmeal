@@ -1,11 +1,13 @@
-import { AlertCircleIcon, LockIcon } from 'lucide-react'
+import { AlertCircleIcon } from 'lucide-react'
 import type { RecordingState } from '@shared/types'
 import type { View } from '@/App'
+import { PrivacyNote } from '@/components/pantry'
 import { RecordButton } from '@/components/record-button'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useModelStatus, usePermissions, useSettings } from '@/hooks/use-oatmeal'
 import { machine } from '@/lib/utils'
+import iconUrl from '../../../../assets/icon.svg'
 
 export function HomeView({ onNavigate, recording }: { onNavigate: (v: View) => void; recording: RecordingState }) {
   const { status } = useModelStatus()
@@ -25,14 +27,13 @@ export function HomeView({ onNavigate, recording }: { onNavigate: (v: View) => v
     <div className="flex h-full flex-col">
       <div className="h-3 shrink-0 mac:h-12 [-webkit-app-region:drag]" />
       <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-6 px-4 pb-16 sm:px-8">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Oatmeal</h1>
-          <p className="text-muted-foreground">
+        <div className="flex flex-col gap-3">
+          <img src={iconUrl} alt="" className="-ml-1.5 size-15" />
+          <h1 className="font-heading text-[52px] leading-[1.05] font-medium tracking-[-0.01em]">Oatmeal</h1>
+          <p className="text-[15px] leading-relaxed text-pretty text-muted-foreground">
             Join a call in Zoom, Meet, Teams, Slack or Discord and Oatmeal will offer to transcribe it. When the call ends, it writes your notes.
           </p>
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <LockIcon className="size-3.5" /> Everything runs on this {machine}. No audio or text ever leaves it.
-          </p>
+          <PrivacyNote>Everything runs on this {machine}. No audio or text ever leaves it.</PrivacyNote>
         </div>
 
         {missing.length > 0 ? (

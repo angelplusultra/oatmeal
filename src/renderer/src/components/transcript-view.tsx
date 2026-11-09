@@ -58,7 +58,7 @@ function SpeakingIndicator({ who }: { who: string }) {
     <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
       <span className="flex gap-1">
         {[0, 150, 300].map((delay) => (
-          <span key={delay} className="size-1.5 animate-bounce rounded-full bg-muted-foreground/70" style={{ animationDelay: `${delay}ms` }} />
+          <span key={delay} className="size-1.5 animate-bounce rounded-full bg-faint" style={{ animationDelay: `${delay}ms` }} />
         ))}
       </span>
       {who}
@@ -139,7 +139,7 @@ export function TranscriptView({
                 <span
                   key={s.id}
                   data-segment={s.id}
-                  className={cn('rounded transition-colors duration-700', highlight === s.id && 'bg-yellow-200/70 dark:bg-yellow-500/30')}
+                  className={cn('rounded transition-colors duration-700', highlight === s.id && 'bg-brand-soft')}
                 >
                   {s.text}{' '}
                 </span>

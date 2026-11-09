@@ -1,25 +1,52 @@
-import { AlertCircleIcon, FileTextIcon, MicIcon } from 'lucide-react'
+import { AlertCircleIcon, FileTextIcon, LockIcon, MicIcon } from 'lucide-react'
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import type { PanelAction, PanelState } from '@shared/types'
 import { Button } from '@/components/ui/button'
 import './globals.css'
 import { followSystemTheme } from './lib/theme'
+import { cn, machine } from './lib/utils'
 
 followSystemTheme()
 
 const respond = (action: PanelAction) => void window.oatmeal.respondToPanel(action)
 
-function Shell({ icon, title, body, actions }: { icon: React.ReactNode; title: string; body: React.ReactNode; actions: React.ReactNode }) {
+const ICON_TONES = {
+  brand: 'bg-brand text-brand-foreground',
+  soft: 'bg-brand-soft text-brand-text',
+  live: 'bg-live-soft text-live',
+}
+
+function Shell({
+  icon,
+  tone,
+  title,
+  body,
+  note,
+  actions,
+}: {
+  icon: React.ReactNode
+  tone: keyof typeof ICON_TONES
+  title: string
+  body: React.ReactNode
+  note?: React.ReactNode
+  actions: React.ReactNode
+}) {
   return (
-    <div className="flex h-screen flex-col justify-between gap-3 bg-background p-4 text-foreground select-none [-webkit-app-region:drag]">
+    <div className="flex h-screen flex-col justify-between gap-3 bg-card p-4 text-card-foreground select-none [-webkit-app-region:drag]">
       <div className="flex min-h-0 gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">{icon}</div>
+        <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-[10px]', ICON_TONES[tone])}>{icon}</div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{title}</p>
-          <div className="line-clamp-2 text-sm text-muted-foreground">{body}</div>
+          <div className="line-clamp-2 text-[13px] leading-snug text-muted-foreground">{body}</div>
         </div>
       </div>
+      {note && (
+        <p className="flex items-center gap-1.5 text-xs text-brand-text">
+          <LockIcon className="size-3 shrink-0" strokeWidth={2.4} />
+          {note}
+        </p>
+      )}
       <div className="flex items-center gap-2 [-webkit-app-region:no-drag]">{actions}</div>
     </div>
   )
@@ -29,8 +56,10 @@ function CallPanel({ name }: { name: string }) {
   return (
     <Shell
       icon={<MicIcon className="size-4" />}
+      tone="brand"
       title={`${name} is using your microphone`}
       body="Transcribe this call? Oatmeal will write notes when it ends."
+      note={`Transcribed on this ${machine}. Nothing is uploaded.`}
       actions={
         <>
           <Button size="sm" variant="link" className="mr-auto px-0 text-muted-foreground" onClick={() => respond('never')}>
@@ -54,6 +83,7 @@ function NotesPanel({ panel }: { panel: Extract<PanelState, { kind: 'notes' }> }
   return (
     <Shell
       icon={failed ? <AlertCircleIcon className="size-4" /> : <FileTextIcon className="size-4" />}
+      tone={failed ? 'live' : 'soft'}
       title={title}
       body={
         <>
