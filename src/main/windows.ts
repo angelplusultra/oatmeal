@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import path from 'node:path'
 import type { OatmealEvents } from '@shared/api'
 import { eventChannel } from '@shared/api'
+import type { OmarchyTheme } from '@shared/omarchy'
 import { app, BrowserWindow, nativeTheme, screen } from 'electron'
 
 export class WindowManager {
@@ -10,11 +11,14 @@ export class WindowManager {
   /** Called when the user focuses the main window. */
   onMainFocus: (() => void) | null = null
   private pendingNavigation: OatmealEvents['navigate'] | null = null
+  /** The Omarchy desktop theme, when there is one. */
+  omarchyTheme: OmarchyTheme | null = null
 
   constructor(private readonly outDir: string) {}
 
   /** Pantry's page (or card, for the panel) color, so a window never flashes the wrong one before it paints. */
   private background(surface: 'page' | 'card' = 'page') {
+    if (this.omarchyTheme) return this.omarchyTheme.background
     const dark = nativeTheme.shouldUseDarkColors
     if (surface === 'card') return dark ? '#26211c' : '#fcf9f3'
     return dark ? '#1b1815' : '#f7f2e9'

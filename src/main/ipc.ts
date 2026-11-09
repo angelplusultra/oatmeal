@@ -6,6 +6,7 @@ import type { Settings } from '@shared/types'
 import { app, clipboard, dialog, ipcMain, shell } from 'electron'
 import type { Store } from './db'
 import { getPermissions, openPermissionSettings } from './helper'
+import type { OmarchyThemeWatcher } from './omarchy'
 import type { Orchestrator } from './orchestrator'
 import type { Paths } from './paths'
 import type { Updater } from './updater'
@@ -20,6 +21,7 @@ interface IpcDeps {
   getSettings(): Settings
   updateSettings(patch: Partial<Settings>): Settings
   updater: Updater
+  omarchyTheme: OmarchyThemeWatcher
 }
 
 /**
@@ -200,6 +202,9 @@ export function registerIpc(deps: IpcDeps) {
     },
     async installUpdate() {
       updater.install()
+    },
+    async getOmarchyTheme() {
+      return deps.omarchyTheme.current()
     },
   }
 
