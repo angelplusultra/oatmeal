@@ -12,6 +12,7 @@ Oatmeal is an Electron menu-bar app for macOS (15+, Apple Silicon) and Linux (de
 npm run dev          # runs `setup` (fetch libmoonshine, build Swift helper), then electron-vite with HMR
 npm run build        # setup + build main, workers, preload, renderer into out/
 npm run typecheck    # tsc for tsconfig.node.json (main/preload/workers/shared) and tsconfig.web.json (renderer/shared)
+npm run lint         # biome check (lint + format + import order); `npm run format` applies fixes
 npm test             # vitest run (src/**/*.test.ts, node environment)
 npx vitest run src/shared/summarize.test.ts        # one test file
 npx vitest run -t "reuses a cached result"         # tests whose name matches
@@ -19,7 +20,7 @@ npm run dist:mac:local  # ad-hoc signed .app in dist/mac-arm64/ (needed to test 
 npm run dist:linux      # AppImage + Arch .pacman in dist/; dist:linux:dir for dist/linux-unpacked/
 ```
 
-No linter or formatter is configured. Typecheck and tests are the checks. `.github/workflows/ci.yml` runs both on pushes to main and on PRs.
+Biome (`biome.json`) lints and formats TS/JS/JSON/CSS; shadcn's generated `components/ui/` is excluded. Lint, typecheck and tests are the checks. `.github/workflows/ci.yml` runs all three on pushes to main and on PRs.
 
 **Releases.** `package.json` `version` is the source of truth (semver; 0.x until the app is stable). `npm version patch|minor|major` (or `prerelease --preid beta`) commits, tags `vX.Y.Z` and pushes (`postversion`). The tag triggers `.github/workflows/release.yml`: it checks the tag matches `package.json`, builds the macOS (macos-15) and Linux (ubuntu) packages, and publishes a GitHub Release with generated notes; tags with a `-` suffix become pre-releases. The macOS app is ad-hoc signed unless the `CSC_LINK`/`CSC_KEY_PASSWORD` secrets are set, and notarized when `APPLE_ID`/`APPLE_APP_SPECIFIC_PASSWORD`/`APPLE_TEAM_ID` are too.
 
