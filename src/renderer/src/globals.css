@@ -123,6 +123,15 @@
   * {
   @apply border-border outline-ring/50;
   }
+  /* Electron gives clicks in a -webkit-app-region:drag area to the OS (window dragging) even when a portaled
+     menu, popover or dialog is drawn on top, so those items ignore hover and clicks wherever they overlap a
+     title-bar strip. Floating layers carve themselves out of the drag regions. */
+  [data-radix-popper-content-wrapper],
+  [role=dialog],
+  [role=alertdialog],
+  [data-sonner-toaster] {
+  -webkit-app-region: no-drag;
+  }
   /* Linux only (macOS keeps its native overlay scrollbars): native scrollbars, e.g. the transcript's, match
      the ScrollArea ones instead of Chromium's classic light ones. The -webkit- form (not scrollbar-color)
      draws no arrow buttons. main.tsx sets data-platform. */
