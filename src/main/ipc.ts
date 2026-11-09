@@ -3,9 +3,10 @@ import { INVOKE_METHODS, invokeChannel, type OatmealEvents, type OatmealInvoke }
 import { renderSummaryMarkdown } from '@shared/summarize'
 import { transcriptToJson, transcriptToMarkdown, transcriptToText } from '@shared/transcript'
 import type { Settings } from '@shared/types'
-import { app, clipboard, dialog, ipcMain, shell } from 'electron'
+import { clipboard, dialog, ipcMain, shell } from 'electron'
 import type { Store } from './db'
 import { getPermissions, openPermissionSettings } from './helper'
+import { getOpenAtLogin, setOpenAtLogin } from './login-items'
 import type { OmarchyThemeWatcher } from './omarchy'
 import type { Orchestrator } from './orchestrator'
 import type { Paths } from './paths'
@@ -23,12 +24,6 @@ interface IpcDeps {
   updater: Updater
   omarchyTheme: OmarchyThemeWatcher
 }
-
-/**
- * Login items need macOS (Electron has no Linux support) and a packaged app: in dev it would register the
- * bare Electron binary.
- */
-const loginItemsSupported = () => process.platform === 'darwin' && app.isPackaged
 
 const slug = (s: string) =>
   s
@@ -178,12 +173,10 @@ export function registerIpc(deps: IpcDeps) {
       await shell.openPath(deps.paths.userData)
     },
     async getOpenAtLogin() {
-      return loginItemsSupported() ? app.getLoginItemSettings().openAtLogin : null
+      return getOpenAtLogin()
     },
     async setOpenAtLogin(open) {
-      if (!loginItemsSupported()) return null
-      app.setLoginItemSettings({ openAtLogin: open })
-      return app.getLoginItemSettings().openAtLogin
+      return setOpenAtLogin(open)
     },
     async getPanel() {
       return orchestrator.getPanel()
