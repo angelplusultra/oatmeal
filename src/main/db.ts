@@ -2,7 +2,15 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import type { Meeting, MeetingListItem, MeetingStatus, MeetingSummary, Segment, Settings, SpeakerKey } from '@shared/types'
+import type {
+  Meeting,
+  MeetingListItem,
+  MeetingStatus,
+  MeetingSummary,
+  Segment,
+  Settings,
+  SpeakerKey,
+} from '@shared/types'
 
 const MIGRATIONS: string[] = [
   `
@@ -155,14 +163,19 @@ export class Store {
   }
 
   isTitleAuto(id: string): boolean {
-    const row = this.db.prepare('SELECT title_auto FROM meetings WHERE id = ?').get(id) as { title_auto: number } | undefined
+    const row = this.db.prepare('SELECT title_auto FROM meetings WHERE id = ?').get(id) as
+      | { title_auto: number }
+      | undefined
     return row?.title_auto === 1
   }
 
   listMeetings(query?: string): MeetingListItem[] {
     const columns = 'id, title, source_app AS sourceApp, started_at AS startedAt, ended_at AS endedAt, status'
     const q = query?.trim()
-    if (!q) return this.db.prepare(`SELECT ${columns} FROM meetings ORDER BY started_at DESC`).all() as unknown as MeetingListItem[]
+    if (!q)
+      return this.db
+        .prepare(`SELECT ${columns} FROM meetings ORDER BY started_at DESC`)
+        .all() as unknown as MeetingListItem[]
     const like = `%${q.replace(/[%_]/g, '')}%`
     const fts = ftsQuery(q)
     const transcriptMatch = fts
@@ -175,7 +188,15 @@ export class Store {
 
   updateMeeting(
     id: string,
-    patch: Partial<{ title: string; titleAuto: boolean; endedAt: number | null; status: MeetingStatus; summary: MeetingSummary | null; error: string | null; speakerNames: Record<string, string> }>,
+    patch: Partial<{
+      title: string
+      titleAuto: boolean
+      endedAt: number | null
+      status: MeetingStatus
+      summary: MeetingSummary | null
+      error: string | null
+      speakerNames: Record<string, string>
+    }>,
   ) {
     const sets: string[] = []
     const values: (string | number | null)[] = []
@@ -200,7 +221,9 @@ export class Store {
 
   /** Meetings left mid-recording or mid-summary by a crash or force-quit. */
   unfinishedMeetings(): Meeting[] {
-    const rows = this.db.prepare(`SELECT * FROM meetings WHERE status IN ('recording', 'summarizing')`).all() as unknown as MeetingRow[]
+    const rows = this.db
+      .prepare(`SELECT * FROM meetings WHERE status IN ('recording', 'summarizing')`)
+      .all() as unknown as MeetingRow[]
     return rows.map(toMeeting)
   }
 
@@ -219,29 +242,42 @@ export class Store {
 
   updateSegment(meetingId: string, lineId: string, patch: { speaker?: string; echo?: boolean }): Segment | null {
     if (patch.speaker !== undefined) {
-      this.db.prepare('UPDATE segments SET speaker = ? WHERE meeting_id = ? AND line_id = ?').run(patch.speaker, meetingId, lineId)
+      this.db
+        .prepare('UPDATE segments SET speaker = ? WHERE meeting_id = ? AND line_id = ?')
+        .run(patch.speaker, meetingId, lineId)
     }
     if (patch.echo !== undefined) {
-      this.db.prepare('UPDATE segments SET echo = ? WHERE meeting_id = ? AND line_id = ?').run(patch.echo ? 1 : 0, meetingId, lineId)
+      this.db
+        .prepare('UPDATE segments SET echo = ? WHERE meeting_id = ? AND line_id = ?')
+        .run(patch.echo ? 1 : 0, meetingId, lineId)
     }
-    const row = this.db.prepare('SELECT * FROM segments WHERE meeting_id = ? AND line_id = ?').get(meetingId, lineId) as SegmentRow | undefined
+    const row = this.db.prepare('SELECT * FROM segments WHERE meeting_id = ? AND line_id = ?').get(meetingId, lineId) as
+      | SegmentRow
+      | undefined
     return row ? toSegment(row) : null
   }
 
   getSegments(meetingId: string): Segment[] {
-    const rows = this.db.prepare('SELECT * FROM segments WHERE meeting_id = ? ORDER BY start_ms, id').all(meetingId) as unknown as SegmentRow[]
+    const rows = this.db
+      .prepare('SELECT * FROM segments WHERE meeting_id = ? ORDER BY start_ms, id')
+      .all(meetingId) as unknown as SegmentRow[]
     return rows.map(toSegment)
   }
 
   lastSegmentEnd(meetingId: string): number | null {
-    const row = this.db.prepare('SELECT MAX(end_ms) AS end FROM segments WHERE meeting_id = ?').get(meetingId) as { end: number | null }
+    const row = this.db.prepare('SELECT MAX(end_ms) AS end FROM segments WHERE meeting_id = ?').get(meetingId) as {
+      end: number | null
+    }
     return row.end
   }
 
   // ------------------------------------------------------------------ map cache
 
   getMapCache(meetingId: string): Record<string, unknown> {
-    const rows = this.db.prepare('SELECT key, json FROM map_cache WHERE meeting_id = ?').all(meetingId) as unknown as { key: string; json: string }[]
+    const rows = this.db.prepare('SELECT key, json FROM map_cache WHERE meeting_id = ?').all(meetingId) as unknown as {
+      key: string
+      json: string
+    }[]
     return Object.fromEntries(rows.map((r) => [r.key, JSON.parse(r.json)]))
   }
 
@@ -260,7 +296,9 @@ export class Store {
   // ------------------------------------------------------------------ settings
 
   getSettings(defaults: Settings): Settings {
-    const row = this.db.prepare(`SELECT value FROM settings WHERE key = 'settings'`).get() as { value: string } | undefined
+    const row = this.db.prepare(`SELECT value FROM settings WHERE key = 'settings'`).get() as
+      | { value: string }
+      | undefined
     return { ...defaults, ...(row ? (JSON.parse(row.value) as Partial<Settings>) : {}) }
   }
 

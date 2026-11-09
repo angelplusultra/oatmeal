@@ -84,7 +84,13 @@ export function buildTurns(
       last.endMs = Math.max(last.endMs, seg.endMs)
       continue
     }
-    turns.push({ speaker: seg.speaker, label: speakerLabel(seg.speaker, names), startMs: seg.startMs, endMs: seg.endMs, text })
+    turns.push({
+      speaker: seg.speaker,
+      label: speakerLabel(seg.speaker, names),
+      startMs: seg.startMs,
+      endMs: seg.endMs,
+      text,
+    })
   }
   return turns
 }

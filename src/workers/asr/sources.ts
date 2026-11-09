@@ -1,5 +1,5 @@
 /** Audio sources for the ASR worker: the native capture helper, or WAV files for development/testing. */
-import { spawn, type ChildProcess } from 'node:child_process'
+import { type ChildProcess, spawn } from 'node:child_process'
 import fs from 'node:fs'
 import type { AudioSourceSpec } from '@shared/protocol'
 import type { Channel } from '@shared/types'
@@ -27,7 +27,11 @@ class HelperSource implements AudioSource {
   private buffer: Buffer = Buffer.alloc(0)
   private stopping = false
 
-  constructor(helperPath: string, excludePids: number[], private readonly cb: AudioSourceCallbacks) {
+  constructor(
+    helperPath: string,
+    excludePids: number[],
+    private readonly cb: AudioSourceCallbacks,
+  ) {
     const args = ['capture', ...excludePids.flatMap((pid) => ['--exclude-pid', String(pid)])]
     this.child = spawn(helperPath, args, { stdio: ['pipe', 'pipe', 'pipe'] })
     this.child.stdout!.on('data', (chunk: Buffer) => this.onData(chunk))
@@ -97,7 +101,18 @@ class PipeWireSource implements AudioSource {
   }
 
   private record(channel: Channel, props: string) {
-    const args = ['--raw', '--rate', '16000', '--channels', '1', '--format', 's16', '-P', `{ media.name = "Oatmeal ${channel}" ${props} }`, '-']
+    const args = [
+      '--raw',
+      '--rate',
+      '16000',
+      '--channels',
+      '1',
+      '--format',
+      's16',
+      '-P',
+      `{ media.name = "Oatmeal ${channel}" ${props} }`,
+      '-',
+    ]
     const child = spawn('pw-record', args, { stdio: ['ignore', 'pipe', 'pipe'] })
     let odd: Buffer | null = null // a sample split across reads
     child.stdout!.on('data', (chunk: Buffer) => {
@@ -108,7 +123,9 @@ class PipeWireSource implements AudioSource {
       for (let i = 0; i < count; i++) samples[i] = chunk.readInt16LE(i * 2) / 32768
       if (count) this.cb.onAudio(channel, samples)
     })
-    child.stderr!.on('data', (chunk: Buffer) => this.cb.onEvent({ type: 'log', channel, message: chunk.toString('utf8').trim() }))
+    child.stderr!.on('data', (chunk: Buffer) =>
+      this.cb.onEvent({ type: 'log', channel, message: chunk.toString('utf8').trim() }),
+    )
     child.on('error', (error) => this.cb.onEvent({ type: 'error', channel, message: `pw-record: ${error.message}` }))
     child.on('exit', (code, signal) => {
       if (!this.stopping) this.cb.onEnded(`${channel} capture (pw-record) exited (${signal ?? code})`)
@@ -122,10 +139,13 @@ class PipeWireSource implements AudioSource {
     await Promise.all(
       this.children
         .filter((child) => child.pid !== undefined && child.exitCode === null && child.signalCode === null)
-        .map((child) => new Promise<void>((resolve) => {
-          child.once('exit', () => resolve())
-          child.kill('SIGTERM')
-        })),
+        .map(
+          (child) =>
+            new Promise<void>((resolve) => {
+              child.once('exit', () => resolve())
+              child.kill('SIGTERM')
+            }),
+        ),
     )
   }
 }
@@ -169,7 +189,8 @@ class FileSource implements AudioSource {
 /** Reads a 16-bit PCM WAV, downmixes to mono and linearly resamples to 16 kHz. */
 export function readWav16k(file: string): Float32Array {
   const buf = fs.readFileSync(file)
-  if (buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') throw new Error(`${file} is not a WAV file`)
+  if (buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE')
+    throw new Error(`${file} is not a WAV file`)
   let offset = 12
   let rate = 16000
   let channels = 1

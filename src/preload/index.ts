@@ -1,5 +1,5 @@
-import { contextBridge, ipcRenderer } from 'electron'
 import { eventChannel, INVOKE_METHODS, invokeChannel, type OatmealApi } from '@shared/api'
+import { contextBridge, ipcRenderer } from 'electron'
 
 const api = Object.fromEntries(
   INVOKE_METHODS.map((method) => [method, (...args: unknown[]) => ipcRenderer.invoke(invokeChannel(method), ...args)]),

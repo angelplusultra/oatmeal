@@ -6,13 +6,20 @@ import type { FoundModel } from '@shared/types'
 /** Where other local-AI tools keep their GGUFs. Missing folders are skipped. */
 export function modelRoots(): { dir: string; source: string }[] {
   const home = os.homedir()
-  const cache = process.platform === 'darwin' ? path.join(home, 'Library', 'Caches') : (process.env.XDG_CACHE_HOME ?? path.join(home, '.cache'))
+  const cache =
+    process.platform === 'darwin'
+      ? path.join(home, 'Library', 'Caches')
+      : (process.env.XDG_CACHE_HOME ?? path.join(home, '.cache'))
   return [
     { dir: path.join(home, '.lmstudio', 'models'), source: 'LM Studio' },
     { dir: path.join(home, '.cache', 'lm-studio', 'models'), source: 'LM Studio' },
     { dir: path.join(cache, 'llama.cpp'), source: 'llama.cpp' },
     { dir: path.join(home, '.node-llama-cpp', 'models'), source: 'node-llama-cpp' },
-    { dir: process.env.HF_HUB_CACHE ?? path.join(process.env.HF_HOME ?? path.join(home, '.cache', 'huggingface'), 'hub'), source: 'Hugging Face' },
+    {
+      dir:
+        process.env.HF_HUB_CACHE ?? path.join(process.env.HF_HOME ?? path.join(home, '.cache', 'huggingface'), 'hub'),
+      source: 'Hugging Face',
+    },
   ]
 }
 

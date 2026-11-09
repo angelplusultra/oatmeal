@@ -1,8 +1,11 @@
 /** Request/response + events over an Electron utility process's parentPort. */
-import type {} from 'electron'
-import type { WorkerEvent, WorkerRequest, WorkerResponse } from '@shared/protocol'
 
-type Handlers<R> = { [K in keyof R]: (payload: R[K] extends { payload: infer P } ? P : never) => Promise<unknown> | unknown }
+import type { WorkerEvent, WorkerRequest, WorkerResponse } from '@shared/protocol'
+import type {} from 'electron'
+
+type Handlers<R> = {
+  [K in keyof R]: (payload: R[K] extends { payload: infer P } ? P : never) => Promise<unknown> | unknown
+}
 
 export function serve<R>(handlers: Handlers<R>): void {
   process.parentPort.on('message', async (event) => {
@@ -14,7 +17,12 @@ export function serve<R>(handlers: Handlers<R>): void {
       if (!handler) throw new Error(`unknown request ${msg.type}`)
       response = { kind: 'response', id: msg.id, ok: true, result: await handler(msg.payload) }
     } catch (error) {
-      response = { kind: 'response', id: msg.id, ok: false, error: error instanceof Error ? error.message : String(error) }
+      response = {
+        kind: 'response',
+        id: msg.id,
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      }
     }
     process.parentPort.postMessage(response)
   })

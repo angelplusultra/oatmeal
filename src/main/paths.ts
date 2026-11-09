@@ -1,5 +1,5 @@
-import { app } from 'electron'
 import path from 'node:path'
+import { app } from 'electron'
 
 /** Where things live. Resources are bundled into the .app when packaged and read from ./resources in dev. */
 export function getPaths() {

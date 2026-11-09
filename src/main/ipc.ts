@@ -1,9 +1,9 @@
-import { app, clipboard, dialog, ipcMain, shell } from 'electron'
 import fs from 'node:fs'
 import { INVOKE_METHODS, invokeChannel, type OatmealEvents, type OatmealInvoke } from '@shared/api'
 import { renderSummaryMarkdown } from '@shared/summarize'
 import { transcriptToJson, transcriptToMarkdown, transcriptToText } from '@shared/transcript'
 import type { Settings } from '@shared/types'
+import { app, clipboard, dialog, ipcMain, shell } from 'electron'
 import type { Store } from './db'
 import { getPermissions, openPermissionSettings } from './helper'
 import type { Orchestrator } from './orchestrator'
@@ -28,7 +28,11 @@ interface IpcDeps {
  */
 const loginItemsSupported = () => process.platform === 'darwin' && app.isPackaged
 
-const slug = (s: string) => s.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 60) || 'meeting'
+const slug = (s: string) =>
+  s
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 60) || 'meeting'
 
 export function registerIpc(deps: IpcDeps) {
   const { store, orchestrator, windows, broadcast, updater } = deps
@@ -86,12 +90,29 @@ export function registerIpc(deps: IpcDeps) {
       const segments = store.getSegments(id)
       const base = slug(meeting.title)
       const outputs = {
-        'notes-md': () => ({ name: `${base}.md`, body: meeting.summary ? renderSummaryMarkdown(meeting.summary, meeting) : '' }),
-        'transcript-txt': () => ({ name: `${base}-transcript.txt`, body: transcriptToText(segments, meeting.speakerNames) + '\n' }),
-        'transcript-md': () => ({ name: `${base}-transcript.md`, body: transcriptToMarkdown(meeting.title, meeting.startedAt, segments, meeting.speakerNames) }),
+        'notes-md': () => ({
+          name: `${base}.md`,
+          body: meeting.summary ? renderSummaryMarkdown(meeting.summary, meeting) : '',
+        }),
+        'transcript-txt': () => ({
+          name: `${base}-transcript.txt`,
+          body: `${transcriptToText(segments, meeting.speakerNames)}\n`,
+        }),
+        'transcript-md': () => ({
+          name: `${base}-transcript.md`,
+          body: transcriptToMarkdown(meeting.title, meeting.startedAt, segments, meeting.speakerNames),
+        }),
         'transcript-json': () => ({
           name: `${base}-transcript.json`,
-          body: JSON.stringify({ title: meeting.title, startedAt: new Date(meeting.startedAt).toISOString(), segments: transcriptToJson(segments, meeting.speakerNames) }, null, 2),
+          body: JSON.stringify(
+            {
+              title: meeting.title,
+              startedAt: new Date(meeting.startedAt).toISOString(),
+              segments: transcriptToJson(segments, meeting.speakerNames),
+            },
+            null,
+            2,
+          ),
         }),
       }
       const { name, body } = outputs[format]()
@@ -133,8 +154,13 @@ export function registerIpc(deps: IpcDeps) {
       await orchestrator.cancelDownload()
     },
     async chooseModelFile() {
-      const options: Electron.OpenDialogOptions = { properties: ['openFile'], filters: [{ name: 'GGUF model', extensions: ['gguf'] }] }
-      const result = windows.main ? await dialog.showOpenDialog(windows.main, options) : await dialog.showOpenDialog(options)
+      const options: Electron.OpenDialogOptions = {
+        properties: ['openFile'],
+        filters: [{ name: 'GGUF model', extensions: ['gguf'] }],
+      }
+      const result = windows.main
+        ? await dialog.showOpenDialog(windows.main, options)
+        : await dialog.showOpenDialog(options)
       return result.canceled ? null : (result.filePaths[0] ?? null)
     },
     async getPermissions() {

@@ -116,7 +116,12 @@ export type ModelKind = 'asr' | 'llm'
 
 export interface ModelStatus {
   asr: { id: AsrModelId; installed: boolean; diarizationInstalled: boolean }
-  llm: { id: LlmModelId; installed: boolean; path: string | null; /** Copies of `id` other apps already downloaded. */ found: FoundModel[] }
+  llm: {
+    id: LlmModelId
+    installed: boolean
+    path: string | null /** Copies of `id` other apps already downloaded. */
+    found: FoundModel[]
+  }
   /** The latest download of each kind (running, finished or failed). The two can run at the same time. */
   downloads: Partial<Record<ModelKind, DownloadProgress>>
 }

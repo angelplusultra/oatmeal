@@ -9,10 +9,19 @@ describe('wordSimilarity', () => {
 })
 
 describe('isEcho', () => {
-  const sys = { startMs: 10_000, endMs: 14_000, text: 'We should ship the pricing change next Tuesday after QA signs off.' }
+  const sys = {
+    startMs: 10_000,
+    endMs: 14_000,
+    text: 'We should ship the pricing change next Tuesday after QA signs off.',
+  }
 
   it('flags a near-duplicate mic line that overlaps in time', () => {
-    expect(isEcho({ startMs: 10_300, endMs: 14_200, text: 'we should ship the pricing change next tuesday after qa signs' }, sys)).toBe(true)
+    expect(
+      isEcho(
+        { startMs: 10_300, endMs: 14_200, text: 'we should ship the pricing change next tuesday after qa signs' },
+        sys,
+      ),
+    ).toBe(true)
   })
 
   it('ignores the same words said much later', () => {
@@ -20,7 +29,9 @@ describe('isEcho', () => {
   })
 
   it('keeps a genuine reply that overlaps in time', () => {
-    expect(isEcho({ startMs: 13_000, endMs: 15_000, text: 'Sounds good, I will tell the QA team today.' }, sys)).toBe(false)
+    expect(isEcho({ startMs: 13_000, endMs: 15_000, text: 'Sounds good, I will tell the QA team today.' }, sys)).toBe(
+      false,
+    )
   })
 
   it('requires an exact match for very short lines', () => {

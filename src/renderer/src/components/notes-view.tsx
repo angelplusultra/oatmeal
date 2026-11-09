@@ -1,6 +1,6 @@
-import { AlertCircleIcon, Loader2Icon, LockIcon, SparklesIcon } from 'lucide-react'
 import { formatTimestamp } from '@shared/transcript'
 import type { Meeting, MeetingSummary } from '@shared/types'
+import { AlertCircleIcon, Loader2Icon, LockIcon, SparklesIcon } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -46,7 +46,15 @@ function Dash({ children }: { children: React.ReactNode }) {
   )
 }
 
-function Summary({ meeting, summary, onJump }: { meeting: Meeting; summary: MeetingSummary; onJump: (ms: number) => void }) {
+function Summary({
+  meeting,
+  summary,
+  onJump,
+}: {
+  meeting: Meeting
+  summary: MeetingSummary
+  onJump: (ms: number) => void
+}) {
   return (
     <div className="space-y-8">
       {summary.tldr && <p className="font-heading text-[19px] leading-[1.55] text-pretty">{summary.tldr}</p>}
@@ -131,7 +139,10 @@ function WritingNotes({ meetingId }: { meetingId: string }) {
   let value = 5
   if (progress?.stage === 'loading') label = 'Loading the notes model…'
   if (progress?.stage === 'map') {
-    label = progress.total > 1 ? `Reading the transcript (part ${Math.min(progress.done + 1, progress.total)} of ${progress.total})…` : 'Reading the transcript…'
+    label =
+      progress.total > 1
+        ? `Reading the transcript (part ${Math.min(progress.done + 1, progress.total)} of ${progress.total})…`
+        : 'Reading the transcript…'
     value = 10 + (progress.done / Math.max(progress.total, 1)) * 70
   }
   if (progress?.stage === 'reduce') {
@@ -149,11 +160,23 @@ function WritingNotes({ meetingId }: { meetingId: string }) {
   )
 }
 
-export function NotesView({ meeting, isLive, onJump }: { meeting: Meeting; isLive: boolean; onJump: (ms: number) => void }) {
+export function NotesView({
+  meeting,
+  isLive,
+  onJump,
+}: {
+  meeting: Meeting
+  isLive: boolean
+  onJump: (ms: number) => void
+}) {
   const writeNotes = () => void window.oatmeal.generateNotes(meeting.id)
   let body: React.ReactNode
   if (isLive || meeting.status === 'recording') {
-    body = <p className="py-6 text-sm text-muted-foreground">Notes will be written when the call ends. Follow along in the Transcript tab.</p>
+    body = (
+      <p className="py-6 text-sm text-muted-foreground">
+        Notes will be written when the call ends. Follow along in the Transcript tab.
+      </p>
+    )
   } else if (meeting.status === 'summarizing') {
     body = <WritingNotes meetingId={meeting.id} />
   } else {
@@ -173,7 +196,9 @@ export function NotesView({ meeting, isLive, onJump }: { meeting: Meeting; isLiv
           <Summary meeting={meeting} summary={meeting.summary} onJump={onJump} />
         ) : (
           <div className="space-y-3 py-6">
-            {!meeting.error && <p className="text-sm text-muted-foreground">No notes have been written for this meeting yet.</p>}
+            {!meeting.error && (
+              <p className="text-sm text-muted-foreground">No notes have been written for this meeting yet.</p>
+            )}
             <Button onClick={writeNotes}>
               <SparklesIcon /> Write notes
             </Button>

@@ -1,8 +1,8 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { defaultSettings } from '@shared/models'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Store } from './db'
 
 let dir: string
@@ -20,9 +20,18 @@ afterEach(() => {
 
 function seed(id: string, title: string, startedAt: number, lines: string[]) {
   store.createMeeting({ id, title, sourceApp: 'Zoom', startedAt, asrModel: 'test' })
-  lines.forEach((text, i) =>
-    store.insertSegment({ meetingId: id, lineId: `mic:${i}`, channel: 'mic', speaker: 'me', startMs: i * 1000, endMs: i * 1000 + 900, text, echo: false }),
-  )
+  lines.forEach((text, i) => {
+    store.insertSegment({
+      meetingId: id,
+      lineId: `mic:${i}`,
+      channel: 'mic',
+      speaker: 'me',
+      startMs: i * 1000,
+      endMs: i * 1000 + 900,
+      text,
+      echo: false,
+    })
+  })
 }
 
 describe('Store', () => {
@@ -39,7 +48,16 @@ describe('Store', () => {
   it('ignores duplicate lines and updates speakers and echo flags', () => {
     seed('a', 'Sync', 0, ['Hello there.'])
     expect(
-      store.insertSegment({ meetingId: 'a', lineId: 'mic:0', channel: 'mic', speaker: 'me', startMs: 0, endMs: 1, text: 'dup', echo: false }),
+      store.insertSegment({
+        meetingId: 'a',
+        lineId: 'mic:0',
+        channel: 'mic',
+        speaker: 'me',
+        startMs: 0,
+        endMs: 1,
+        text: 'dup',
+        echo: false,
+      }),
     ).toBeNull()
     const updated = store.updateSegment('a', 'mic:0', { speaker: 'sys:1', echo: true })
     expect(updated).toMatchObject({ speaker: 'sys:1', echo: true, text: 'Hello there.' })
@@ -50,7 +68,16 @@ describe('Store', () => {
     store.updateMeeting('a', {
       status: 'done',
       speakerNames: { 'sys:0': 'Priya' },
-      summary: { title: 'T', tldr: 'x', keyPoints: [], decisions: [], actionItems: [], openQuestions: [], generatedAt: 1, model: 'm' },
+      summary: {
+        title: 'T',
+        tldr: 'x',
+        keyPoints: [],
+        decisions: [],
+        actionItems: [],
+        openQuestions: [],
+        generatedAt: 1,
+        model: 'm',
+      },
     })
     store.saveMapCache('a', { k1: { topics: [] } })
     const meeting = store.getMeeting('a')!

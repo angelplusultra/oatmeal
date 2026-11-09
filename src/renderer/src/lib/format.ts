@@ -26,7 +26,12 @@ export function formatDay(ts: number): string {
   yesterday.setDate(today.getDate() - 1)
   if (d.toDateString() === today.toDateString()) return 'Today'
   if (d.toDateString() === yesterday.toDateString()) return 'Yesterday'
-  return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric' })
+  return d.toLocaleDateString([], {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric',
+  })
 }
 
 export function formatDate(ts: number): string {
@@ -40,7 +45,14 @@ export function formatBytes(bytes: number): string {
 }
 
 // Muted, warm hues from the Pantry palette (globals.css). "You" is honey.
-const SPEAKER_COLORS = ['text-speaker-1', 'text-speaker-2', 'text-speaker-3', 'text-speaker-4', 'text-speaker-5', 'text-speaker-6']
+const SPEAKER_COLORS = [
+  'text-speaker-1',
+  'text-speaker-2',
+  'text-speaker-3',
+  'text-speaker-4',
+  'text-speaker-5',
+  'text-speaker-6',
+]
 
 export function speakerColor(key: string): string {
   if (key === 'me') return 'text-brand-text'

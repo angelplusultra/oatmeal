@@ -1,8 +1,8 @@
+import type { ExportFormat } from '@shared/api'
+import type { RecordingState } from '@shared/types'
 import { CopyIcon, DownloadIcon, Loader2Icon, MoreHorizontalIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import type { ExportFormat } from '@shared/api'
-import type { RecordingState } from '@shared/types'
 import type { View } from '@/App'
 import { NotesView } from '@/components/notes-view'
 import { TranscriptView } from '@/components/transcript-view'
@@ -24,7 +24,8 @@ import { formatClock, formatDate, formatDuration, formatTime } from '@/lib/forma
 import { cn } from '@/lib/utils'
 
 /** Underline tabs that sit on the header's bottom border. */
-const TAB = 'h-auto flex-none px-0 pt-0 pb-2.5 text-[13.5px] group-data-horizontal/tabs:after:bottom-[-1px] group-data-horizontal/tabs:after:h-[2px]'
+const TAB =
+  'h-auto flex-none px-0 pt-0 pb-2.5 text-[13.5px] group-data-horizontal/tabs:after:bottom-[-1px] group-data-horizontal/tabs:after:h-[2px]'
 
 const run = (promise: Promise<unknown>, success?: string) =>
   promise.then(
@@ -44,13 +45,23 @@ function LiveControl({ recording }: { recording: RecordingState }) {
         {[6, 12, 16, 9, 5].map((h, i) => (
           <span
             key={i}
-            className={cn('w-[3px] origin-center rounded-full bg-live', active && 'animate-[oatmeal-level_0.9s_ease-in-out_infinite]')}
+            className={cn(
+              'w-[3px] origin-center rounded-full bg-live',
+              active && 'animate-[oatmeal-level_0.9s_ease-in-out_infinite]',
+            )}
             style={{ height: h, animationDelay: `${i * 120}ms` }}
           />
         ))}
       </div>
-      <span className="font-mono text-[12.5px] tabular-nums">{recording.kind === 'recording' ? formatClock(now - recording.startedAt) : '0:00'}</span>
-      <Button size="sm" className="bg-live text-white hover:bg-live/85" disabled={recording.kind !== 'recording'} onClick={() => void window.oatmeal.stopRecording()}>
+      <span className="font-mono text-[12.5px] tabular-nums">
+        {recording.kind === 'recording' ? formatClock(now - recording.startedAt) : '0:00'}
+      </span>
+      <Button
+        size="sm"
+        className="bg-live text-white hover:bg-live/85"
+        disabled={recording.kind !== 'recording'}
+        onClick={() => void window.oatmeal.stopRecording()}
+      >
         {recording.kind === 'starting' && <Loader2Icon className="animate-spin" />}
         Stop
       </Button>
@@ -58,7 +69,15 @@ function LiveControl({ recording }: { recording: RecordingState }) {
   )
 }
 
-export function MeetingView({ meetingId, recording, onNavigate }: { meetingId: string; recording: RecordingState; onNavigate: (v: View) => void }) {
+export function MeetingView({
+  meetingId,
+  recording,
+  onNavigate,
+}: {
+  meetingId: string
+  recording: RecordingState
+  onNavigate: (v: View) => void
+}) {
   const { meeting, segments } = useMeeting(meetingId)
   const isLive = (recording.kind === 'recording' || recording.kind === 'starting') && recording.meetingId === meetingId
   const [tab, setTab] = useState<string | null>(null)
@@ -107,7 +126,11 @@ export function MeetingView({ meetingId, recording, onNavigate }: { meetingId: s
                 className="h-10 font-heading text-[28px] font-medium tracking-[-0.01em] md:text-[28px]"
               />
             ) : (
-              <h1 className="cursor-text truncate font-heading text-[28px] leading-tight font-medium tracking-[-0.01em]" title="Click to rename" onClick={() => setEditing(true)}>
+              <h1
+                className="cursor-text truncate font-heading text-[28px] leading-tight font-medium tracking-[-0.01em]"
+                title="Click to rename"
+                onClick={() => setEditing(true)}
+              >
                 {meeting.title}
               </h1>
             )}
@@ -128,7 +151,10 @@ export function MeetingView({ meetingId, recording, onNavigate }: { meetingId: s
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem disabled={!meeting.summary} onClick={() => run(window.oatmeal.copyNotes(meetingId), 'Notes copied as Markdown')}>
+                  <DropdownMenuItem
+                    disabled={!meeting.summary}
+                    onClick={() => run(window.oatmeal.copyNotes(meetingId), 'Notes copied as Markdown')}
+                  >
                     <CopyIcon /> Copy notes
                   </DropdownMenuItem>
                   <DropdownMenuSub>
@@ -141,7 +167,9 @@ export function MeetingView({ meetingId, recording, onNavigate }: { meetingId: s
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => exportAs('transcript-txt')}>Transcript (.txt)</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => exportAs('transcript-md')}>Transcript (.md)</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => exportAs('transcript-json')}>Transcript (.json)</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => exportAs('transcript-json')}>
+                        Transcript (.json)
+                      </DropdownMenuItem>
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
                   <DropdownMenuItem

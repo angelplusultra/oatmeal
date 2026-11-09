@@ -3,9 +3,10 @@
 //   assets/icon.svg -> build/icon.png (1024px; electron-builder makes the .icns from it)
 //   assets/tray.svg -> resources/tray/trayTemplate(@2x).png, black, used as a macOS template image
 //                      resources/tray/recording(@2x).png, red, shown while recording
-import { app, BrowserWindow } from 'electron'
+
 import fs from 'node:fs'
 import path from 'node:path'
+import { app, BrowserWindow } from 'electron'
 
 const root = path.resolve(import.meta.dirname, '..')
 const RECORDING_RED = '#FF3B30' // macOS systemRed

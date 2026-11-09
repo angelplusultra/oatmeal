@@ -22,7 +22,9 @@ function loadGenerator(): Promise<Generator | null> {
   generator ??= (async () => {
     try {
       const dist = path.dirname(createRequire(import.meta.url).resolve('node-llama-cpp'))
-      const mod = (await import(pathToFileURL(path.join(dist, 'utils/gbnfJson/getGbnfGrammarForGbnfJsonSchema.js')).href)) as {
+      const mod = (await import(
+        pathToFileURL(path.join(dist, 'utils/gbnfJson/getGbnfGrammarForGbnfJsonSchema.js')).href
+      )) as {
         getGbnfGrammarForGbnfJsonSchema?: Generator
       }
       return mod.getGbnfGrammarForGbnfJsonSchema ?? null

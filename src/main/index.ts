@@ -1,10 +1,10 @@
-import { app, Menu, Notification } from 'electron'
 import os from 'node:os'
 import path from 'node:path'
 import type { OatmealEvents } from '@shared/api'
 import { defaultSettings } from '@shared/models'
 import type { AsrEvents, AsrRequests, LlmEvents, LlmRequests } from '@shared/protocol'
 import type { ModelKind, Settings } from '@shared/types'
+import { app, Menu, Notification } from 'electron'
 import { Store } from './db'
 import { MeetingDetector } from './detector'
 import { applyUserDataOverride, createScreenshotter, fakeAudioFromEnv } from './dev'
@@ -13,8 +13,8 @@ import { Orchestrator } from './orchestrator'
 import { getPaths } from './paths'
 import { AppTray } from './tray'
 import { Updater } from './updater'
-import { WorkerClient } from './worker-client'
 import { WindowManager } from './windows'
+import { WorkerClient } from './worker-client'
 
 const outDir = import.meta.dirname
 
@@ -32,12 +32,16 @@ async function main() {
   // Linux: no File/Edit/View menu bar. Text-field shortcuts (copy, paste, undo) work without it.
   if (process.platform !== 'darwin') Menu.setApplicationMenu(null)
   // Packaged builds get the icon from the bundle; in dev, show it in the Dock too.
-  if (!app.isPackaged && process.platform === 'darwin') app.dock?.setIcon(path.join(app.getAppPath(), 'build', 'icon.png'))
+  if (!app.isPackaged && process.platform === 'darwin')
+    app.dock?.setIcon(path.join(app.getAppPath(), 'build', 'icon.png'))
   const store = new Store(paths.db)
   const defaults = defaultSettings({ cpuCount: os.cpus().length, totalMemGB: os.totalmem() / 2 ** 30 })
   let settings = store.getSettings(defaults)
   // People who recorded before onboarding existed skip it, and so do the dev hooks that simulate a call.
-  if (!settings.onboarded && (store.listMeetings().length > 0 || process.env.OATMEAL_AUTOSTART || process.env.OATMEAL_DEMO_PROMPT)) {
+  if (
+    !settings.onboarded &&
+    (store.listMeetings().length > 0 || process.env.OATMEAL_AUTOSTART || process.env.OATMEAL_DEMO_PROMPT)
+  ) {
     settings = { ...settings, onboarded: true }
     store.saveSettings(settings)
   }
@@ -49,9 +53,13 @@ async function main() {
     onBroadcast(event, payload)
   }
 
-  const asr = new WorkerClient<AsrRequests, AsrEvents>(path.join(outDir, 'asr-worker.js'), 'Oatmeal Speech', async (client) => {
-    await client.send('init', { libDir: paths.moonshineLib, modelsDir: paths.models })
-  })
+  const asr = new WorkerClient<AsrRequests, AsrEvents>(
+    path.join(outDir, 'asr-worker.js'),
+    'Oatmeal Speech',
+    async (client) => {
+      await client.send('init', { libDir: paths.moonshineLib, modelsDir: paths.models })
+    },
+  )
   const llm = new WorkerClient<LlmRequests, LlmEvents>(path.join(outDir, 'llm-worker.js'), 'Oatmeal Notes')
   const ownPids = () => app.getAppMetrics().map((m) => m.pid)
   const detector = new MeetingDetector(paths.helper, () => new Set(ownPids()))
@@ -99,11 +107,21 @@ async function main() {
 
   const activeUpdater = new Updater({
     onChange: (state) => broadcast('update-state', state),
-    busyReason: () => (orchestrator.getState().kind === 'idle' ? null : 'Stop the recording before restarting to update'),
+    busyReason: () =>
+      orchestrator.getState().kind === 'idle' ? null : 'Stop the recording before restarting to update',
   })
   updater = activeUpdater
 
-  registerIpc({ store, paths, orchestrator, windows, broadcast, getSettings: () => settings, updateSettings, updater: activeUpdater })
+  registerIpc({
+    store,
+    paths,
+    orchestrator,
+    windows,
+    broadcast,
+    getSettings: () => settings,
+    updateSettings,
+    updater: activeUpdater,
+  })
 
   const tray = new AppTray(paths.trayIcons, {
     start: () => void orchestrator.start(null),
@@ -135,7 +153,8 @@ async function main() {
         setTimeout(() => console.log(`[dev] while recording: main window ${describeWindow(windows)}`), 3000)
       }
     }
-    if (event === 'panel' && payload) setTimeout(() => void screenshotPanel((payload as OatmealEvents['panel'])!.kind), 1500)
+    if (event === 'panel' && payload)
+      setTimeout(() => void screenshotPanel((payload as OatmealEvents['panel'])!.kind), 1500)
     if (event === 'panel' && (payload as OatmealEvents['panel'])?.kind === 'notes' && process.env.OATMEAL_DEMO_VIEW) {
       // Click "View notes" on the panel.
       setTimeout(() => void orchestrator.respondToPanel('view'), 2000)
@@ -148,16 +167,20 @@ async function main() {
       const meeting = store.getMeeting((payload as OatmealEvents['meeting-updated']).meetingId)
       if (meeting?.status === 'done' || meeting?.status === 'failed') {
         setTimeout(async () => {
-          console.log(`[dev] notes ${meeting.status} ${Date.now() - stoppedAt} ms after the call ended: main window ${describeWindow(windows)}`)
+          console.log(
+            `[dev] notes ${meeting.status} ${Date.now() - stoppedAt} ms after the call ended: main window ${describeWindow(windows)}`,
+          )
           await screenshot(`notes-${meeting.status}`)
-          if (process.env.OATMEAL_EXIT_AFTER_NOTES) setTimeout(() => app.quit(), process.env.OATMEAL_DEMO_VIEW ? 6000 : 2500)
+          if (process.env.OATMEAL_EXIT_AFTER_NOTES)
+            setTimeout(() => app.quit(), process.env.OATMEAL_DEMO_VIEW ? 6000 : 2500)
         }, 0)
       }
     }
   }
 
   // Launched at login (macOS): stay in the menu bar. Until setup is done, show it so the user can finish.
-  const openedAtLogin = process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin && settings.onboarded
+  const openedAtLogin =
+    process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin && settings.onboarded
   const startHidden = !!process.env.OATMEAL_START_HIDDEN || openedAtLogin
   if (!startHidden) windows.showMain()
   if (settings.detectionEnabled) detector.start()

@@ -22,8 +22,14 @@ const WHEELS = {
   'win32-x64': { tag: 'win_amd64', files: ['moonshine.dll', 'onnxruntime.dll'] },
   // The Linux wheels are auditwheel-repaired: ONNX Runtime sits in moonshine_voice.libs/ under a hashed
   // name, and libmoonshine.so finds it through RPATH $ORIGIN once both are in the same directory.
-  'linux-x64': { tag: 'manylinux_2_34_x86_64', files: ['libmoonshine.so', '../moonshine_voice.libs/libonnxruntime-13ab8084.so.1'] },
-  'linux-arm64': { tag: 'manylinux_2_34_aarch64', files: ['libmoonshine.so', '../moonshine_voice.libs/libonnxruntime-ab8c4363.so.1'] },
+  'linux-x64': {
+    tag: 'manylinux_2_34_x86_64',
+    files: ['libmoonshine.so', '../moonshine_voice.libs/libonnxruntime-13ab8084.so.1'],
+  },
+  'linux-arm64': {
+    tag: 'manylinux_2_34_aarch64',
+    files: ['libmoonshine.so', '../moonshine_voice.libs/libonnxruntime-ab8c4363.so.1'],
+  },
 }
 
 function log(msg) {
@@ -88,7 +94,16 @@ function buildHelper() {
   if (fs.existsSync(out) && fs.statSync(out).mtimeMs >= newestMtime(path.join(pkg, 'Sources'))) return
   log('building oatmeal-audio (SwiftPM)')
   execFileSync('swift', ['build', '-c', 'release', '--arch', 'arm64', '--package-path', pkg], { stdio: 'inherit' })
-  const binPath = execFileSync('swift', ['build', '-c', 'release', '--arch', 'arm64', '--package-path', pkg, '--show-bin-path'])
+  const binPath = execFileSync('swift', [
+    'build',
+    '-c',
+    'release',
+    '--arch',
+    'arm64',
+    '--package-path',
+    pkg,
+    '--show-bin-path',
+  ])
     .toString()
     .trim()
   fs.mkdirSync(path.dirname(out), { recursive: true })

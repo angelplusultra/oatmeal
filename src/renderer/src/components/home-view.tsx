@@ -1,10 +1,10 @@
-import { AlertCircleIcon } from 'lucide-react'
 import type { RecordingState } from '@shared/types'
+import { AlertCircleIcon } from 'lucide-react'
 import type { View } from '@/App'
 import { PrivacyNote } from '@/components/pantry'
 import { RecordButton } from '@/components/record-button'
-import { Button } from '@/components/ui/button'
 import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { useModelStatus, usePermissions, useSettings } from '@/hooks/use-oatmeal'
 import { machine } from '@/lib/utils'
 import iconUrl from '../../../../assets/icon.svg'
@@ -20,7 +20,10 @@ export function HomeView({ onNavigate, recording }: { onNavigate: (v: View) => v
   const missing = [
     status && !status.asr.installed && 'the speech model',
     permissions && permissions.microphone !== 'granted' && permissions.microphone !== 'unknown' && 'microphone access',
-    permissions && permissions.systemAudio !== 'granted' && permissions.systemAudio !== 'unknown' && 'system audio access',
+    permissions &&
+      permissions.systemAudio !== 'granted' &&
+      permissions.systemAudio !== 'unknown' &&
+      'system audio access',
   ].filter(Boolean) as string[]
 
   return (
@@ -31,7 +34,8 @@ export function HomeView({ onNavigate, recording }: { onNavigate: (v: View) => v
           <img src={iconUrl} alt="" className="-ml-1.5 size-15" />
           <h1 className="font-heading text-[52px] leading-[1.05] font-medium tracking-[-0.01em]">Oatmeal</h1>
           <p className="text-[15px] leading-relaxed text-pretty text-muted-foreground">
-            Join a call in Zoom, Meet, Teams, Slack or Discord and Oatmeal will offer to transcribe it. When the call ends, it writes your notes.
+            Join a call in Zoom, Meet, Teams, Slack or Discord and Oatmeal will offer to transcribe it. When the call
+            ends, it writes your notes.
           </p>
           <PrivacyNote>Everything runs on this {machine}. No audio or text ever leaves it.</PrivacyNote>
         </div>

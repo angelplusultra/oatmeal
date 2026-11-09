@@ -1,15 +1,15 @@
+import type { OatmealEvents } from '@shared/api'
 import { PanelLeftIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import type { OatmealEvents } from '@shared/api'
+import { HomeView } from '@/components/home-view'
+import { MeetingView } from '@/components/meeting-view'
+import { Onboarding } from '@/components/onboarding'
+import { SettingsView } from '@/components/settings-view'
+import { Sidebar } from '@/components/sidebar'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { HomeView } from '@/components/home-view'
-import { Onboarding } from '@/components/onboarding'
-import { MeetingView } from '@/components/meeting-view'
-import { SettingsView } from '@/components/settings-view'
-import { Sidebar } from '@/components/sidebar'
 import { useEvent, useRecordingState, useSettings } from '@/hooks/use-oatmeal'
 import { cn } from '@/lib/utils'
 
@@ -31,6 +31,7 @@ export function App() {
     else setView({ kind: 'settings' })
   }
   useEvent('navigate', navigate)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once on mount
   useEffect(() => {
     void window.oatmeal.takePendingNavigation().then((target) => target && navigate(target))
     void window.oatmeal.getRecordingState().then((state) => {
@@ -46,7 +47,7 @@ export function App() {
     else toast(message)
   })
 
-  if (!settings || !settings.onboarded) {
+  if (!settings?.onboarded) {
     return (
       <TooltipProvider>
         <div className="h-screen bg-background text-foreground">
@@ -71,7 +72,10 @@ export function App() {
           view={view}
           onNavigate={go}
           recording={recording}
-          className={cn('max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:z-30 max-md:shadow-xl', !navOpen && 'max-md:hidden')}
+          className={cn(
+            'max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:z-30 max-md:shadow-xl',
+            !navOpen && 'max-md:hidden',
+          )}
         />
         {navOpen && <div className="absolute inset-0 z-20 bg-black/40 md:hidden" onClick={() => setNavOpen(false)} />}
         <main className="flex min-w-0 flex-1 flex-col">
@@ -82,7 +86,9 @@ export function App() {
           </div>
           <div className="min-h-0 flex-1">
             {view.kind === 'home' && <HomeView onNavigate={go} recording={recording} />}
-            {view.kind === 'meeting' && <MeetingView key={view.id} meetingId={view.id} recording={recording} onNavigate={go} />}
+            {view.kind === 'meeting' && (
+              <MeetingView key={view.id} meetingId={view.id} recording={recording} onNavigate={go} />
+            )}
             {view.kind === 'settings' && <SettingsView onRunSetup={() => void update({ onboarded: false })} />}
           </div>
         </main>

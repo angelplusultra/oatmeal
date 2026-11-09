@@ -1,6 +1,6 @@
+import type { MeetingListItem, RecordingState } from '@shared/types'
 import { SearchIcon, SettingsIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import type { MeetingListItem, RecordingState } from '@shared/types'
 import type { View } from '@/App'
 import { RecordButton } from '@/components/record-button'
 import { Badge } from '@/components/ui/badge'
@@ -62,14 +62,21 @@ export function Sidebar({
         <RecordButton recording={recording} className="w-full" />
         <div className="relative">
           <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search meetings" className="h-8 pl-8" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search meetings"
+            className="h-8 pl-8"
+          />
         </div>
       </div>
       {/* Radix's viewport wraps content in a table-display div that grows with long titles; force block so rows truncate. */}
       <ScrollArea className="min-h-0 flex-1 [&_[data-slot=scroll-area-viewport]>div]:!block">
         <nav className="px-2 pb-3">
           {groups.length === 0 && (
-            <p className="px-2 py-6 text-center text-sm text-muted-foreground">{query ? 'No matching meetings.' : 'Your meetings will show up here.'}</p>
+            <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+              {query ? 'No matching meetings.' : 'Your meetings will show up here.'}
+            </p>
           )}
           {groups.map((group) => (
             <div key={group.day} className="mb-2">
