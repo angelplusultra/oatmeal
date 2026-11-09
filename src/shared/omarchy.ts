@@ -95,6 +95,8 @@ export function omarchyTheme(colors: Record<string, string>, rounding?: number):
     'brand-foreground': onAccent,
     'brand-soft': mix(accent, 18, bg),
     'brand-text': accent,
+    'app-icon': accent,
+    'app-icon-foreground': onAccent,
     live: red,
     'live-soft': mix(red, 18, bg),
     faint: mix(fg, 35, bg),

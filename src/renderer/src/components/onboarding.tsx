@@ -15,7 +15,7 @@ import type {
 import { ArrowLeftIcon, AudioLinesIcon, FileIcon, FileTextIcon, Loader2Icon, MicIcon, Volume2Icon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { DoneMark, PrivacyNote } from '@/components/pantry'
+import { AppIcon, DoneMark, PrivacyNote } from '@/components/pantry'
 import { EndpointFields } from '@/components/settings-view'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -26,7 +26,6 @@ import { Switch } from '@/components/ui/switch'
 import { useModelStatus, useOpenAtLogin, usePermissions, useSettings } from '@/hooks/use-oatmeal'
 import { formatBytes } from '@/lib/format'
 import { cn, isMac, machine } from '@/lib/utils'
-import iconUrl from '../../../../assets/icon.svg'
 
 type StepId = 'welcome' | 'permissions' | 'models' | 'ready'
 
@@ -169,7 +168,7 @@ function Welcome({ onNext }: { onNext: () => void }) {
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-3">
-        <img src={iconUrl} alt="" className="-ml-1.5 size-15" />
+        <AppIcon className="-ml-1.5 size-15" />
         <h1 className="font-heading text-[52px] leading-[1.05] font-medium tracking-[-0.01em]">Welcome to Oatmeal</h1>
         <p className="text-[15px] leading-relaxed text-pretty text-muted-foreground">
           Oatmeal transcribes your calls and writes the notes: a summary, decisions, action items and open questions.

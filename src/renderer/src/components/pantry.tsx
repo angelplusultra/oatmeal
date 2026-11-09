@@ -1,6 +1,19 @@
 /** Small pieces of the Pantry look that several screens share. */
 import { CheckIcon, LockIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import iconSvg from '../../../../assets/icon.svg?raw'
+
+/** The app icon, inline rather than an <img> so an Omarchy theme's --app-icon colors reach it. */
+export function AppIcon({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn('block [&>svg]:size-full', className)}
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: our own bundled asset, not user content
+      dangerouslySetInnerHTML={{ __html: iconSvg }}
+    />
+  )
+}
 
 /** A honey-tinted pill stating the privacy promise in a sentence. */
 export function PrivacyNote({ children, className }: { children: React.ReactNode; className?: string }) {
