@@ -15,9 +15,28 @@ const [dbPath, modelPath, runsArg] = process.argv.slice(2)
 const runs = Number(runsArg ?? 3)
 
 const db = new DatabaseSync(dbPath)
-const meeting = db.prepare('SELECT id, speaker_names FROM meetings ORDER BY started_at DESC LIMIT 1').get() as { id: string; speaker_names: string }
-const segments = (db.prepare('SELECT * FROM segments WHERE meeting_id = ? ORDER BY start_ms').all(meeting.id) as Record<string, unknown>[]).map(
-  (r) => ({ id: r.id, meetingId: r.meeting_id, lineId: r.line_id, channel: r.channel, speaker: r.speaker, startMs: r.start_ms, endMs: r.end_ms, text: r.text, echo: r.echo === 1 }) as Segment,
+const meeting = db.prepare('SELECT id, speaker_names FROM meetings ORDER BY started_at DESC LIMIT 1').get() as {
+  id: string
+  speaker_names: string
+}
+const segments = (
+  db.prepare('SELECT * FROM segments WHERE meeting_id = ? ORDER BY start_ms').all(meeting.id) as Record<
+    string,
+    unknown
+  >[]
+).map(
+  (r) =>
+    ({
+      id: r.id,
+      meetingId: r.meeting_id,
+      lineId: r.line_id,
+      channel: r.channel,
+      speaker: r.speaker,
+      startMs: r.start_ms,
+      endMs: r.end_ms,
+      text: r.text,
+      echo: r.echo === 1,
+    }) as Segment,
 )
 const turns = buildTurns(segments, JSON.parse(meeting.speaker_names))
 
@@ -38,8 +57,14 @@ for (const [name, grammar] of variants) {
     let decisions = 0
     for (const chunk of chunks) {
       await sequence.clearHistory()
-      const session = new LlamaChatSession({ contextSequence: sequence, systemPrompt: MAP_SYSTEM, autoDisposeSequence: false })
-      const out = JSON.parse(await session.prompt(buildMapPrompt(chunk, chunks.length), { grammar, maxTokens: 2000, temperature: 0.2 }))
+      const session = new LlamaChatSession({
+        contextSequence: sequence,
+        systemPrompt: MAP_SYSTEM,
+        autoDisposeSequence: false,
+      })
+      const out = JSON.parse(
+        await session.prompt(buildMapPrompt(chunk, chunks.length), { grammar, maxTokens: 2000, temperature: 0.2 }),
+      )
       session.dispose({ disposeSequence: false })
       actions += out.actionItems.length
       decisions += out.decisions.length

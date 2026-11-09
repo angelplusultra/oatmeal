@@ -5,16 +5,35 @@
  */
 import { DatabaseSync } from 'node:sqlite'
 import { Gemma4ChatWrapper, getLlama, LlamaChatSession, type LlamaGrammar } from 'node-llama-cpp'
-import { summarizeMeeting, type JsonSchema, type LlmClient } from '../src/shared/summarize'
+import { type JsonSchema, type LlmClient, summarizeMeeting } from '../src/shared/summarize'
 import { buildTurns } from '../src/shared/transcript'
 import type { Segment } from '../src/shared/types'
 import { createCompactJsonGrammar } from '../src/workers/llm/grammar'
 
 const [dbPath, modelPath, maxArg] = process.argv.slice(2)
 const db = new DatabaseSync(dbPath)
-const meeting = db.prepare('SELECT id, speaker_names FROM meetings ORDER BY started_at DESC LIMIT 1').get() as { id: string; speaker_names: string }
-let segments = (db.prepare('SELECT * FROM segments WHERE meeting_id = ? ORDER BY start_ms').all(meeting.id) as Record<string, unknown>[]).map(
-  (r) => ({ id: r.id, meetingId: r.meeting_id, lineId: r.line_id, channel: r.channel, speaker: r.speaker, startMs: r.start_ms, endMs: r.end_ms, text: r.text, echo: r.echo === 1 }) as Segment,
+const meeting = db.prepare('SELECT id, speaker_names FROM meetings ORDER BY started_at DESC LIMIT 1').get() as {
+  id: string
+  speaker_names: string
+}
+let segments = (
+  db.prepare('SELECT * FROM segments WHERE meeting_id = ? ORDER BY start_ms').all(meeting.id) as Record<
+    string,
+    unknown
+  >[]
+).map(
+  (r) =>
+    ({
+      id: r.id,
+      meetingId: r.meeting_id,
+      lineId: r.line_id,
+      channel: r.channel,
+      speaker: r.speaker,
+      startMs: r.start_ms,
+      endMs: r.end_ms,
+      text: r.text,
+      echo: r.echo === 1,
+    }) as Segment,
 )
 if (maxArg) segments = segments.slice(0, Number(maxArg))
 const turns = buildTurns(segments, JSON.parse(meeting.speaker_names))

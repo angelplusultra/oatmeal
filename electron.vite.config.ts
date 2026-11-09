@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
-import { defineConfig } from 'electron-vite'
-import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
+import { defineConfig } from 'electron-vite'
 
 const shared = { '@shared': resolve('src/shared') }
 
@@ -10,7 +10,8 @@ const csp = {
   name: 'oatmeal-csp',
   apply: 'build' as const,
   transformIndexHtml(html: string) {
-    const policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'"
+    const policy =
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'"
     return html.replace('<head>', `<head>\n    <meta http-equiv="Content-Security-Policy" content="${policy}" />`)
   },
 }

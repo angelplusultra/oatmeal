@@ -27,7 +27,8 @@ export interface CallEndInput {
 }
 
 export function callEndDecision(input: CallEndInput): 'stop' | 'wait' {
-  const { now, micReleasedAt, appPlaying, playingStoppedAt, lastRemoteSpeechAt, remoteSpeaking, silenceTimeoutMs } = input
+  const { now, micReleasedAt, appPlaying, playingStoppedAt, lastRemoteSpeechAt, remoteSpeaking, silenceTimeoutMs } =
+    input
   if (!appPlaying) {
     const quietSince = Math.max(micReleasedAt, playingStoppedAt ?? micReleasedAt)
     return now - quietSince >= QUIET_GRACE_MS ? 'stop' : 'wait'

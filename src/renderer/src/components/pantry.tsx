@@ -5,7 +5,12 @@ import { cn } from '@/lib/utils'
 /** A honey-tinted pill stating the privacy promise in a sentence. */
 export function PrivacyNote({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <p className={cn('flex w-fit items-center gap-2 rounded-full bg-brand-soft py-1.5 pr-3 pl-2.5 text-[13px] font-medium text-brand-text', className)}>
+    <p
+      className={cn(
+        'flex w-fit items-center gap-2 rounded-full bg-brand-soft py-1.5 pr-3 pl-2.5 text-[13px] font-medium text-brand-text',
+        className,
+      )}
+    >
       <LockIcon className="size-3.5 shrink-0" strokeWidth={2.2} />
       {children}
     </p>

@@ -5,10 +5,16 @@
 import path from 'node:path'
 import type { AsrEvents, AsrRequests, AudioSourceSpec } from '@shared/protocol'
 import type { Channel } from '@shared/types'
-import { downloadFiles, isComplete, type DownloadFile } from '../download'
+import { type DownloadFile, downloadFiles, isComplete } from '../download'
 import { emit, installCrashReporting, serve } from '../rpc'
-import { FLAG_FORCE_UPDATE, MoonshineLibrary, type MoonshineManifest, type MoonshineStream, type MoonshineTranscriber } from './moonshine'
-import { openSource, type AudioSource } from './sources'
+import {
+  FLAG_FORCE_UPDATE,
+  MoonshineLibrary,
+  type MoonshineManifest,
+  type MoonshineStream,
+  type MoonshineTranscriber,
+} from './moonshine'
+import { type AudioSource, openSource } from './sources'
 
 const send = <K extends keyof AsrEvents & string>(type: K, payload: AsrEvents[K]) => emit<AsrEvents, K>(type, payload)
 installCrashReporting((message) => send('error', { message }))
@@ -171,7 +177,8 @@ async function startSession(arch: number, separateSpeakers: boolean, spec: Audio
   if (!stt.files.every(isComplete)) throw new Error('The speech model is not downloaded yet')
   const base = { decode_incomplete_lines: 'false', return_audio_data: 'false' }
 
-  const channels: Channel[] = spec.kind === 'files' ? (['mic', 'system'] as const).filter((c) => !!spec[c]) : ['mic', 'system']
+  const channels: Channel[] =
+    spec.kind === 'files' ? (['mic', 'system'] as const).filter((c) => !!spec[c]) : ['mic', 'system']
   const pipelines = new Map<Channel, ChannelPipeline>()
   for (const channel of channels) {
     const diarize = channel === 'system' && separateSpeakers

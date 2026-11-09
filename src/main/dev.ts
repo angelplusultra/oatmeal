@@ -13,10 +13,11 @@
  *   OATMEAL_DEMO_VIEW=1                                     click "View notes" on the notes-ready panel
  *   OATMEAL_START_VIEW=settings                             open Settings on launch
  */
-import { app, type BrowserWindow } from 'electron'
+
 import fs from 'node:fs'
 import path from 'node:path'
 import type { AudioSourceSpec } from '@shared/protocol'
+import { app, type BrowserWindow } from 'electron'
 
 export function fakeAudioFromEnv(): Extract<AudioSourceSpec, { kind: 'files' }> | undefined {
   const raw = process.env.OATMEAL_FAKE_AUDIO

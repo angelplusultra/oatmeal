@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { parseAudioStreams } from './pulse'
 
-const proc = (pid: number, binary: string) => ({ 'application.process.id': String(pid), 'application.process.binary': binary, 'application.name': binary })
+const proc = (pid: number, binary: string) => ({
+  'application.process.id': String(pid),
+  'application.process.binary': binary,
+  'application.name': binary,
+})
 
 describe('parseAudioStreams', () => {
   it('merges input and output per process, skipping corked streams and monitor recordings', () => {

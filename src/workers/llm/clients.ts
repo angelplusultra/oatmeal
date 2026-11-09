@@ -1,5 +1,13 @@
-import { getLlama, LlamaChatSession, type Llama, type LlamaContext, type LlamaContextSequence, type LlamaGrammar, type LlamaModel } from 'node-llama-cpp'
 import type { JsonSchema, LlmClient } from '@shared/summarize'
+import {
+  getLlama,
+  type Llama,
+  LlamaChatSession,
+  type LlamaContext,
+  type LlamaContextSequence,
+  type LlamaGrammar,
+  type LlamaModel,
+} from 'node-llama-cpp'
 import { createCompactJsonGrammar } from './grammar'
 
 /** llama.cpp via node-llama-cpp (Metal on Apple Silicon; CUDA, Vulkan or CPU on Linux). Output is constrained by a JSON-schema grammar. */
@@ -41,14 +49,28 @@ export class LocalLlm implements LlmClient {
     return this.sequence
   }
 
-  async generateJson({ system, prompt, schema, maxTokens }: { system: string; prompt: string; schema: JsonSchema; maxTokens: number }) {
+  async generateJson({
+    system,
+    prompt,
+    schema,
+    maxTokens,
+  }: {
+    system: string
+    prompt: string
+    schema: JsonSchema
+    maxTokens: number
+  }) {
     let grammar = this.grammars.get(schema)
     if (!grammar) {
       grammar = await createCompactJsonGrammar(this.llama, schema)
       this.grammars.set(schema, grammar)
     }
     const sequence = await this.sequenceFor(this.countTokens(system) + this.countTokens(prompt) + maxTokens + 64)
-    const session = new LlamaChatSession({ contextSequence: sequence, systemPrompt: system, autoDisposeSequence: false })
+    const session = new LlamaChatSession({
+      contextSequence: sequence,
+      systemPrompt: system,
+      autoDisposeSequence: false,
+    })
     try {
       const text = await session.prompt(prompt, { grammar, maxTokens, temperature: 0.2 })
       return JSON.parse(text)
@@ -80,10 +102,23 @@ export class EndpointLlm implements LlmClient {
     return Math.ceil(text.length / 3.5)
   }
 
-  async generateJson({ system, prompt, schema, maxTokens }: { system: string; prompt: string; schema: JsonSchema; maxTokens: number }) {
+  async generateJson({
+    system,
+    prompt,
+    schema,
+    maxTokens,
+  }: {
+    system: string
+    prompt: string
+    schema: JsonSchema
+    maxTokens: number
+  }) {
     const res = await fetch(`${this.baseUrl.replace(/\/$/, '')}/chat/completions`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', ...(this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {}) },
+      headers: {
+        'content-type': 'application/json',
+        ...(this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {}),
+      },
       body: JSON.stringify({
         model: this.model,
         temperature: 0.2,

@@ -1,6 +1,6 @@
-import { app, Menu, nativeImage, nativeTheme, Tray } from 'electron'
 import path from 'node:path'
 import type { RecordingState } from '@shared/types'
+import { app, Menu, nativeImage, nativeTheme, Tray } from 'electron'
 
 /** Menu bar icon: shows whether Oatmeal is recording and offers start/stop. */
 export class AppTray {
@@ -67,7 +67,11 @@ export class AppTray {
           ...(this.updateVersion
             ? [
                 { type: 'separator' as const },
-                { label: `Restart to update to ${this.updateVersion}`, enabled: state.kind === 'idle', click: () => this.actions.installUpdate() },
+                {
+                  label: `Restart to update to ${this.updateVersion}`,
+                  enabled: state.kind === 'idle',
+                  click: () => this.actions.installUpdate(),
+                },
               ]
             : []),
           { type: 'separator' },

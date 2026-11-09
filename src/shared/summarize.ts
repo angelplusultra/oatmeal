@@ -7,7 +7,7 @@
  * - Longer: MAP (extract per chunk) → VERIFY → REDUCE (combine) → resolve back to verified notes.
  */
 import { wordSimilarity } from './echo'
-import { chunkTurns, formatTimestamp, parseTimestamp, type Chunk, type Turn } from './transcript'
+import { type Chunk, chunkTurns, formatTimestamp, parseTimestamp, type Turn } from './transcript'
 import type { ActionItem, Decision, KeyPointGroup, MeetingSummary } from './types'
 
 /** Bump when prompts or schemas change, so cached map results are not reused across versions. */
@@ -45,7 +45,11 @@ export const MAP_SYSTEM = [
   'Each transcript line starts with a [mm:ss] timestamp and the speaker\'s name. "You" is the person taking these notes.',
 ].join(' ')
 
-const ts = { type: 'string', description: 'Timestamp of the transcript line, copied exactly, e.g. "12:34"', maxLength: 10 }
+const ts = {
+  type: 'string',
+  description: 'Timestamp of the transcript line, copied exactly, e.g. "12:34"',
+  maxLength: 10,
+}
 const nullableString = (description: string, maxLength = 120) => ({ type: ['string', 'null'], description, maxLength })
 
 export const MAP_SCHEMA: JsonSchema = {
@@ -241,7 +245,8 @@ interface VerifiedNotes {
 }
 
 export function buildMapPrompt(chunk: Chunk, total: number): string {
-  const part = total > 1 ? `This is part ${chunk.index + 1} of ${total} of a meeting transcript ` : 'This is a meeting transcript '
+  const part =
+    total > 1 ? `This is part ${chunk.index + 1} of ${total} of a meeting transcript ` : 'This is a meeting transcript '
   return `${part}(${formatTimestamp(chunk.startMs)}–${formatTimestamp(chunk.endMs)}).
 
 <transcript>
@@ -256,7 +261,11 @@ Extract from this transcript:
 Use empty arrays when there is nothing for a field. Do not repeat the same item twice.`
 }
 
-const normalize = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+const normalize = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
 
 /**
  * Drops items the model could not have read in this chunk: decisions and action items must cite a
@@ -276,7 +285,9 @@ export function verifyChunkNotes(notes: ChunkNotes, chunk: Chunk, slackMs = 30_0
   }
   const cleanDue = (due: string | null): string | null => {
     if (!due?.trim()) return null
-    const words = normalize(due).split(' ').filter((w) => w.length > 2)
+    const words = normalize(due)
+      .split(' ')
+      .filter((w) => w.length > 2)
     // Keep the deadline only if at least one of its meaningful words was actually said.
     return words.length === 0 || words.some((w) => haystack.includes(w)) ? due.trim() : null
   }
@@ -290,7 +301,9 @@ export function verifyChunkNotes(notes: ChunkNotes, chunk: Chunk, slackMs = 30_0
       .filter((d): d is { text: string; ts: number } => !!d.text && inRange(d.ts)),
     actionItems: notes.actionItems
       .map((a) => ({ task: a.task.trim(), owner: cleanOwner(a.owner), due: cleanDue(a.due), ts: parseTimestamp(a.ts) }))
-      .filter((a): a is { task: string; owner: string | null; due: string | null; ts: number } => !!a.task && inRange(a.ts)),
+      .filter(
+        (a): a is { task: string; owner: string | null; due: string | null; ts: number } => !!a.task && inRange(a.ts),
+      ),
     openQuestions: notes.openQuestions.map((q) => q.trim()).filter(Boolean),
   }
 }
@@ -322,7 +335,10 @@ function mergeVerified(perChunk: { chunk: Chunk; notes: ReturnType<typeof verify
 export function buildReducePrompt(notes: VerifiedNotes, participants: string[]): string {
   const topics = notes.topics.length
     ? notes.topics
-        .map((t) => `- [${formatTimestamp(t.startMs)}–${formatTimestamp(t.endMs)}] ${t.title}${t.points.length ? `: ${t.points.join('; ')}` : ''}`)
+        .map(
+          (t) =>
+            `- [${formatTimestamp(t.startMs)}–${formatTimestamp(t.endMs)}] ${t.title}${t.points.length ? `: ${t.points.join('; ')}` : ''}`,
+        )
         .join('\n')
     : '(none)'
   const decisions = notes.decisions.length
@@ -330,10 +346,15 @@ export function buildReducePrompt(notes: VerifiedNotes, participants: string[]):
     : '(none)'
   const actions = notes.actionItems.length
     ? notes.actionItems
-        .map((a) => `${a.id} [${formatTimestamp(a.ts)}] ${a.owner ?? 'unassigned'}: ${a.task}${a.due ? ` (due: ${a.due})` : ''}`)
+        .map(
+          (a) =>
+            `${a.id} [${formatTimestamp(a.ts)}] ${a.owner ?? 'unassigned'}: ${a.task}${a.due ? ` (due: ${a.due})` : ''}`,
+        )
         .join('\n')
     : '(none)'
-  const questions = notes.openQuestions.length ? notes.openQuestions.map((q) => `${q.id} ${q.text}`).join('\n') : '(none)'
+  const questions = notes.openQuestions.length
+    ? notes.openQuestions.map((q) => `${q.id} ${q.text}`).join('\n')
+    : '(none)'
 
   return `Below are notes taken from each part of a meeting, in order. Combine them into the final meeting notes.
 
@@ -379,7 +400,9 @@ function resolveReduce(out: ReduceOutput, notes: VerifiedNotes): Pick<MeetingSum
     if (!sources.length || !a.task.trim()) continue
     const knownOwners = sources.map((s) => s.owner).filter((o): o is string => !!o)
     const owner =
-      a.owner && knownOwners.some((o) => normalize(o) === normalize(a.owner!)) ? a.owner.trim() : (knownOwners[0] ?? null)
+      a.owner && knownOwners.some((o) => normalize(o) === normalize(a.owner!))
+        ? a.owner.trim()
+        : (knownOwners[0] ?? null)
     const due = sources.find((s) => s.due)?.due ?? null
     actionItems.push({ task: a.task.trim(), owner, due, ts: Math.min(...sources.map((s) => s.ts)), done: false })
   }
@@ -440,7 +463,11 @@ function throwIfAborted(signal?: AbortSignal) {
   if (signal?.aborted) throw new Error('Summarization cancelled')
 }
 
-export async function summarizeMeeting(turns: Turn[], llm: LlmClient, options: SummarizeOptions = {}): Promise<MeetingSummary> {
+export async function summarizeMeeting(
+  turns: Turn[],
+  llm: LlmClient,
+  options: SummarizeOptions = {},
+): Promise<MeetingSummary> {
   const { chunkTokens = DEFAULT_CHUNK_TOKENS, overlapTurns = 2, onProgress, signal, mapCache } = options
   const generatedAt = Date.now()
 
@@ -485,7 +512,10 @@ export async function summarizeMeeting(turns: Turn[], llm: LlmClient, options: S
   onProgress?.({ stage: 'reduce', done: 0, total: 1 })
   const reduced = (await llm.generateJson({
     system: MAP_SYSTEM,
-    prompt: buildReducePrompt(notes, participants.map((p) => (p === 'You' ? 'You (note-taker)' : p))),
+    prompt: buildReducePrompt(
+      notes,
+      participants.map((p) => (p === 'You' ? 'You (note-taker)' : p)),
+    ),
     schema: REDUCE_SCHEMA,
     maxTokens: 2500,
   })) as ReduceOutput
@@ -507,8 +537,16 @@ export async function summarizeMeeting(turns: Turn[], llm: LlmClient, options: S
 }
 
 /** Markdown export of the notes. Rendered in code so formatting is consistent regardless of model. */
-export function renderSummaryMarkdown(summary: MeetingSummary, meta: { startedAt: number; sourceApp: string | null }): string {
-  const out: string[] = [`# ${summary.title}`, '', `_${new Date(meta.startedAt).toLocaleString()}${meta.sourceApp ? ` · ${meta.sourceApp}` : ''}_`, '']
+export function renderSummaryMarkdown(
+  summary: MeetingSummary,
+  meta: { startedAt: number; sourceApp: string | null },
+): string {
+  const out: string[] = [
+    `# ${summary.title}`,
+    '',
+    `_${new Date(meta.startedAt).toLocaleString()}${meta.sourceApp ? ` · ${meta.sourceApp}` : ''}_`,
+    '',
+  ]
   if (summary.tldr) out.push('## TL;DR', '', summary.tldr, '')
   if (summary.keyPoints.length) {
     out.push('## Key points', '')
@@ -517,21 +555,28 @@ export function renderSummaryMarkdown(summary: MeetingSummary, meta: { startedAt
     }
   }
   if (summary.decisions.length) {
-    out.push('## Decisions', '', ...summary.decisions.map((d) => `- ${d.text}${d.ts !== null ? ` (${formatTimestamp(d.ts)})` : ''}`), '')
+    out.push(
+      '## Decisions',
+      '',
+      ...summary.decisions.map((d) => `- ${d.text}${d.ts !== null ? ` (${formatTimestamp(d.ts)})` : ''}`),
+      '',
+    )
   }
   if (summary.actionItems.length) {
     out.push(
       '## Action items',
       '',
       ...summary.actionItems.map((a) => {
-        const meta = [a.owner, a.due ? `due ${a.due}` : null, a.ts !== null ? formatTimestamp(a.ts) : null].filter(Boolean).join(' · ')
+        const meta = [a.owner, a.due ? `due ${a.due}` : null, a.ts !== null ? formatTimestamp(a.ts) : null]
+          .filter(Boolean)
+          .join(' · ')
         return `- [${a.done ? 'x' : ' '}] ${a.task}${meta ? ` — ${meta}` : ''}`
       }),
       '',
     )
   }
   if (summary.openQuestions.length) out.push('## Open questions', '', ...summary.openQuestions.map((q) => `- ${q}`), '')
-  return out.join('\n').trimEnd() + '\n'
+  return `${out.join('\n').trimEnd()}\n`
 }
 
 async function singlePass(
@@ -543,12 +588,20 @@ async function singlePass(
   const key = cacheKey('single', chunk, llm.modelName)
   let raw = mapCache?.get(key) as SinglePassNotes | undefined
   if (!raw) {
-    raw = (await llm.generateJson({ system: MAP_SYSTEM, prompt: buildSinglePassPrompt(chunk), schema: NOTES_SCHEMA, maxTokens: 2500 })) as SinglePassNotes
+    raw = (await llm.generateJson({
+      system: MAP_SYSTEM,
+      prompt: buildSinglePassPrompt(chunk),
+      schema: NOTES_SCHEMA,
+      maxTokens: 2500,
+    })) as SinglePassNotes
     mapCache?.set(key, raw)
   }
   onProgress?.({ stage: 'reduce', done: 1, total: 1 })
 
-  const verified = verifyChunkNotes({ topics: [], decisions: raw.decisions, actionItems: raw.actionItems, openQuestions: raw.openQuestions }, chunk)
+  const verified = verifyChunkNotes(
+    { topics: [], decisions: raw.decisions, actionItems: raw.actionItems, openQuestions: raw.openQuestions },
+    chunk,
+  )
   return {
     title: raw.title.trim() || 'Untitled meeting',
     tldr: raw.tldr.trim(),

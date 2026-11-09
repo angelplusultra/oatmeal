@@ -6,8 +6,8 @@ import {
   parseTimestamp,
   speakerLabel,
   stripFillers,
-  transcriptToText,
   type Turn,
+  transcriptToText,
 } from './transcript'
 import type { Segment } from './types'
 
@@ -130,9 +130,12 @@ describe('chunkTurns', () => {
 
 describe('transcriptToText', () => {
   it('skips echo lines and uses speaker names', () => {
-    const text = transcriptToText([seg('me', 1, 2, 'Hi.'), seg('me', 2, 3, 'dup', { echo: true }), seg('sys:1', 4, 5, 'Hello!')], {
-      'sys:1': 'Sam',
-    })
+    const text = transcriptToText(
+      [seg('me', 1, 2, 'Hi.'), seg('me', 2, 3, 'dup', { echo: true }), seg('sys:1', 4, 5, 'Hello!')],
+      {
+        'sys:1': 'Sam',
+      },
+    )
     expect(text).toBe('[00:01] You: Hi.\n[00:04] Sam: Hello!')
   })
 })

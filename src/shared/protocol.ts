@@ -10,7 +10,9 @@ export interface WorkerRequest<T extends string = string, P = unknown> {
   payload: P
 }
 
-export type WorkerResponse = { kind: 'response'; id: number; ok: true; result: unknown } | { kind: 'response'; id: number; ok: false; error: string }
+export type WorkerResponse =
+  | { kind: 'response'; id: number; ok: true; result: unknown }
+  | { kind: 'response'; id: number; ok: false; error: string }
 
 export interface WorkerEvent<T extends string = string, P = unknown> {
   kind: 'event'

@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
 import type { OatmealEvents } from '@shared/api'
 import type {
   Meeting,
@@ -11,6 +10,7 @@ import type {
   SummaryProgress,
   UpdateState,
 } from '@shared/types'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 const api = () => window.oatmeal
 
@@ -62,7 +62,8 @@ export function useMeeting(id: string | null) {
       }
       const next = [...current, segment]
       // Lines from the two channels can complete out of order.
-      if (current.length && current[current.length - 1].startMs > segment.startMs) next.sort((a, b) => a.startMs - b.startMs)
+      if (current.length && current[current.length - 1].startMs > segment.startMs)
+        next.sort((a, b) => a.startMs - b.startMs)
       return next
     })
   })

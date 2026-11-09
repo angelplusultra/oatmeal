@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatTimestamp, speakerLabel } from '@shared/transcript'
 import type { Channel, Meeting, Segment } from '@shared/types'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -58,7 +58,11 @@ function SpeakingIndicator({ who }: { who: string }) {
     <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
       <span className="flex gap-1">
         {[0, 150, 300].map((delay) => (
-          <span key={delay} className="size-1.5 animate-bounce rounded-full bg-faint" style={{ animationDelay: `${delay}ms` }} />
+          <span
+            key={delay}
+            className="size-1.5 animate-bounce rounded-full bg-faint"
+            style={{ animationDelay: `${delay}ms` }}
+          />
         ))}
       </span>
       {who}
@@ -125,14 +129,18 @@ export function TranscriptView({
       <div className="mx-auto max-w-3xl space-y-5 px-4 py-6 sm:px-8">
         {blocks.length === 0 && !someoneSpeaking && (
           <p className="py-6 text-sm text-muted-foreground">
-            {isLive ? 'Listening… Each sentence appears here a moment after it’s spoken.' : 'Nothing was transcribed in this meeting.'}
+            {isLive
+              ? 'Listening… Each sentence appears here a moment after it’s spoken.'
+              : 'Nothing was transcribed in this meeting.'}
           </p>
         )}
         {blocks.map((block) => (
           <div key={block.segments[0].id} className="space-y-1">
             <div className="flex items-baseline gap-2">
               <SpeakerName meeting={meeting} speaker={block.speaker} />
-              <span className="font-mono text-xs text-muted-foreground tabular-nums">{formatTimestamp(block.segments[0].startMs)}</span>
+              <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                {formatTimestamp(block.segments[0].startMs)}
+              </span>
             </div>
             <p className="text-sm leading-relaxed">
               {block.segments.map((s) => (
@@ -147,7 +155,17 @@ export function TranscriptView({
             </p>
           </div>
         ))}
-        {someoneSpeaking && <SpeakingIndicator who={activity.mic && activity.system ? 'Both sides are talking…' : activity.mic ? 'You’re talking…' : 'Others are talking…'} />}
+        {someoneSpeaking && (
+          <SpeakingIndicator
+            who={
+              activity.mic && activity.system
+                ? 'Both sides are talking…'
+                : activity.mic
+                  ? 'You’re talking…'
+                  : 'Others are talking…'
+            }
+          />
+        )}
       </div>
     </div>
   )

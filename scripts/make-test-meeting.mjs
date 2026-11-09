@@ -29,19 +29,37 @@ const shortScript = [
 ]
 
 const longScript = [
-  ['you', 'Hi both, thanks for joining. Today I want to cover the pricing change, the billing migration, and the hiring plan.'],
-  ['priya', 'Sounds good. On pricing, the proposal is to raise the enterprise tier from forty to fifty dollars per seat starting in January.'],
+  [
+    'you',
+    'Hi both, thanks for joining. Today I want to cover the pricing change, the billing migration, and the hiring plan.',
+  ],
+  [
+    'priya',
+    'Sounds good. On pricing, the proposal is to raise the enterprise tier from forty to fifty dollars per seat starting in January.',
+  ],
   ['marcus', 'My worry is existing customers. If we raise prices on them right away we will see churn.'],
   ['you', 'Agreed. What if we grandfather existing enterprise customers at the current price for twelve months?'],
-  ['priya', 'I like that. Okay, decision: existing enterprise customers keep the current price for twelve months, and new customers pay fifty dollars from January.'],
-  ['marcus', 'Works for me. Next, billing. We still have to move from Stripe billing version one to version two before the end of January.'],
+  [
+    'priya',
+    'I like that. Okay, decision: existing enterprise customers keep the current price for twelve months, and new customers pay fifty dollars from January.',
+  ],
+  [
+    'marcus',
+    'Works for me. Next, billing. We still have to move from Stripe billing version one to version two before the end of January.',
+  ],
   ['you', 'Marcus, can you own the migration plan and have a first draft by next Friday?'],
   ['marcus', 'Yes, I will have the migration plan draft ready by next Friday.'],
-  ['priya', 'One open question is whether the migration needs a maintenance window. Nobody has checked that with the support team yet.'],
+  [
+    'priya',
+    'One open question is whether the migration needs a maintenance window. Nobody has checked that with the support team yet.',
+  ],
   ['you', 'Good point. Last topic is hiring. We want a second product designer this quarter.'],
   ['priya', 'Finance has not approved the budget yet. I will ask finance for the designer budget approval this week.'],
   ['marcus', 'And I can start drafting the job description once the budget is approved.'],
-  ['you', 'Great. To recap, pricing is decided, Marcus drafts the migration plan by Friday, and Priya talks to finance. Thanks everyone.'],
+  [
+    'you',
+    'Great. To recap, pricing is decided, Marcus drafts the migration plan by Friday, and Priya talks to finance. Thanks everyone.',
+  ],
 ]
 
 const script = short ? shortScript : longScript
@@ -67,10 +85,27 @@ script.forEach(([who, text], i) => {
   if (process.platform === 'darwin') {
     execFileSync('say', ['-v', VOICES[who], '-o', file, '--file-format=WAVE', `--data-format=LEI16@${RATE}`, text])
   } else {
-    if (!process.env.PIPER_VOICES) throw new Error('set PIPER_VOICES to a directory of Piper voices (see the top of this file)')
+    if (!process.env.PIPER_VOICES)
+      throw new Error('set PIPER_VOICES to a directory of Piper voices (see the top of this file)')
     const raw = path.join(tmp, `${i}-piper.wav`)
-    execFileSync('uvx', ['--from', 'piper-tts', 'piper', '-m', path.join(process.env.PIPER_VOICES, `${VOICES[who]}.onnx`), '-f', raw], { input: text })
-    execFileSync('ffmpeg', ['-loglevel', 'error', '-i', raw, '-ar', String(RATE), '-ac', '1', '-c:a', 'pcm_s16le', file])
+    execFileSync(
+      'uvx',
+      ['--from', 'piper-tts', 'piper', '-m', path.join(process.env.PIPER_VOICES, `${VOICES[who]}.onnx`), '-f', raw],
+      { input: text },
+    )
+    execFileSync('ffmpeg', [
+      '-loglevel',
+      'error',
+      '-i',
+      raw,
+      '-ar',
+      String(RATE),
+      '-ac',
+      '1',
+      '-c:a',
+      'pcm_s16le',
+      file,
+    ])
   }
   const pcm = readPcm(file)
   tracks[CHANNEL[who]].push({ at: cursor, pcm })

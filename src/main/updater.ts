@@ -1,6 +1,6 @@
+import type { UpdateState, UpdateStatus } from '@shared/types'
 import { app } from 'electron'
 import electronUpdater from 'electron-updater'
-import type { UpdateState, UpdateStatus } from '@shared/types'
 
 const { autoUpdater } = electronUpdater
 
@@ -53,7 +53,12 @@ export class Updater {
     autoUpdater.on('error', (error) => {
       // Offline is normal for a privacy-first app; say so plainly instead of dumping a stack.
       const message = String(error?.message ?? error).split('\n')[0]
-      this.set({ kind: 'error', message: /ENOTFOUND|ENETUNREACH|EAI_AGAIN|ECONNREFUSED|ETIMEDOUT|net::ERR_/.test(message) ? "Couldn't reach GitHub." : message })
+      this.set({
+        kind: 'error',
+        message: /ENOTFOUND|ENETUNREACH|EAI_AGAIN|ECONNREFUSED|ETIMEDOUT|net::ERR_/.test(message)
+          ? "Couldn't reach GitHub."
+          : message,
+      })
     })
   }
 

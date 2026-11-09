@@ -1,8 +1,17 @@
-import { CheckCircle2Icon, DownloadIcon, FileIcon, FolderOpenIcon, Loader2Icon, RefreshCwIcon, RotateCwIcon, XIcon } from 'lucide-react'
+import { ASR_MODELS, asrModel, LLM_MODELS, llmModel } from '@shared/models'
+import type { ModelKind, ModelStatus, PermissionState, Settings, UpdateStatus } from '@shared/types'
+import {
+  CheckCircle2Icon,
+  DownloadIcon,
+  FileIcon,
+  FolderOpenIcon,
+  Loader2Icon,
+  RefreshCwIcon,
+  RotateCwIcon,
+  XIcon,
+} from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { ASR_MODELS, LLM_MODELS, asrModel, llmModel } from '@shared/models'
-import type { ModelKind, ModelStatus, PermissionState, Settings, UpdateStatus } from '@shared/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,11 +22,26 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
-import { useModelStatus, useOpenAtLogin, usePermissions, useRecordingState, useSettings, useUpdateState } from '@/hooks/use-oatmeal'
+import {
+  useModelStatus,
+  useOpenAtLogin,
+  usePermissions,
+  useRecordingState,
+  useSettings,
+  useUpdateState,
+} from '@/hooks/use-oatmeal'
 import { formatBytes, formatDay, formatTime } from '@/lib/format'
 import { isMac, machine } from '@/lib/utils'
 
-function Row({ title, description, children }: { title: string; description?: React.ReactNode; children: React.ReactNode }) {
+function Row({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description?: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
       <div className="min-w-0 space-y-0.5">
@@ -29,7 +53,17 @@ function Row({ title, description, children }: { title: string; description?: Re
   )
 }
 
-function ModelDownload({ kind, installed, sizeLabel, status }: { kind: ModelKind; installed: boolean; sizeLabel: string; status: ModelStatus | null }) {
+function ModelDownload({
+  kind,
+  installed,
+  sizeLabel,
+  status,
+}: {
+  kind: ModelKind
+  installed: boolean
+  sizeLabel: string
+  status: ModelStatus | null
+}) {
   const download = status?.downloads[kind] ?? null
   const running = !!download && !download.done && !download.error
   if (installed && !running) {
@@ -48,7 +82,12 @@ function ModelDownload({ kind, installed, sizeLabel, status }: { kind: ModelKind
           {pct !== null ? `${pct}%` : formatBytes(download.loaded)}
         </span>
         {kind === 'llm' && (
-          <Button variant="ghost" size="icon-sm" aria-label="Cancel download" onClick={() => void window.oatmeal.cancelDownload()}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Cancel download"
+            onClick={() => void window.oatmeal.cancelDownload()}
+          >
             <XIcon />
           </Button>
         )}
@@ -57,7 +96,11 @@ function ModelDownload({ kind, installed, sizeLabel, status }: { kind: ModelKind
   }
   return (
     <div className="flex items-center gap-2">
-      {download?.error && <span className="max-w-48 truncate text-xs text-destructive" title={download.error}>{download.error}</span>}
+      {download?.error && (
+        <span className="max-w-48 truncate text-xs text-destructive" title={download.error}>
+          {download.error}
+        </span>
+      )}
       <Button
         size="sm"
         variant="outline"
@@ -77,9 +120,20 @@ const PERMISSION_LABEL: Record<PermissionState, string> = {
   unknown: 'Unknown',
 }
 
-function PermissionRow({ kind, state, onRequest }: { kind: 'microphone' | 'systemAudio'; state: PermissionState | undefined; onRequest: () => void }) {
+function PermissionRow({
+  kind,
+  state,
+  onRequest,
+}: {
+  kind: 'microphone' | 'systemAudio'
+  state: PermissionState | undefined
+  onRequest: () => void
+}) {
   const title = kind === 'microphone' ? 'Microphone' : 'System audio recording'
-  const description = kind === 'microphone' ? 'To transcribe what you say.' : 'To transcribe the other people on the call. Oatmeal never records your screen.'
+  const description =
+    kind === 'microphone'
+      ? 'To transcribe what you say.'
+      : 'To transcribe the other people on the call. Oatmeal never records your screen.'
   return (
     <Row title={title} description={description}>
       <Badge variant={state === 'granted' ? 'secondary' : 'outline'}>
@@ -101,7 +155,15 @@ function PermissionRow({ kind, state, onRequest }: { kind: 'microphone' | 'syste
 }
 
 /** Where the built-in notes model comes from: a GGUF on disk (found or chosen), or Oatmeal's own download. */
-function LocalModelSource({ settings, status, set }: { settings: Settings; status: ModelStatus | null; set: (p: Partial<Settings>) => void }) {
+function LocalModelSource({
+  settings,
+  status,
+  set,
+}: {
+  settings: Settings
+  status: ModelStatus | null
+  set: (p: Partial<Settings>) => void
+}) {
   const llm = llmModel(settings.localModel)
   const found = status?.llm.found[0]
   const choose = () =>
@@ -150,30 +212,59 @@ function LocalModelSource({ settings, status, set }: { settings: Settings; statu
   return (
     <Row title="" description={null}>
       {chooseButton}
-      <ModelDownload kind="llm" installed={!!status?.llm.installed} sizeLabel={`(${formatBytes(llm.sizeBytes)})`} status={status} />
+      <ModelDownload
+        kind="llm"
+        installed={!!status?.llm.installed}
+        sizeLabel={`(${formatBytes(llm.sizeBytes)})`}
+        status={status}
+      />
     </Row>
   )
 }
 
 export function EndpointFields({ settings, update }: { settings: Settings; update: (p: Partial<Settings>) => void }) {
-  const [draft, setDraft] = useState({ url: settings.endpointUrl, model: settings.endpointModel, key: settings.endpointApiKey })
-  const commit = () => update({ endpointUrl: draft.url.trim(), endpointModel: draft.model.trim(), endpointApiKey: draft.key })
+  const [draft, setDraft] = useState({
+    url: settings.endpointUrl,
+    model: settings.endpointModel,
+    key: settings.endpointApiKey,
+  })
+  const commit = () =>
+    update({ endpointUrl: draft.url.trim(), endpointModel: draft.model.trim(), endpointApiKey: draft.key })
   return (
     <div className="grid gap-3">
       <div className="grid gap-1.5">
         <Label htmlFor="endpoint-url">Server URL</Label>
-        <Input id="endpoint-url" value={draft.url} placeholder="http://localhost:11434/v1" onChange={(e) => setDraft({ ...draft, url: e.target.value })} onBlur={commit} />
+        <Input
+          id="endpoint-url"
+          value={draft.url}
+          placeholder="http://localhost:11434/v1"
+          onChange={(e) => setDraft({ ...draft, url: e.target.value })}
+          onBlur={commit}
+        />
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="endpoint-model">Model</Label>
-        <Input id="endpoint-model" value={draft.model} placeholder="gemma4:e4b" onChange={(e) => setDraft({ ...draft, model: e.target.value })} onBlur={commit} />
+        <Input
+          id="endpoint-model"
+          value={draft.model}
+          placeholder="gemma4:e4b"
+          onChange={(e) => setDraft({ ...draft, model: e.target.value })}
+          onBlur={commit}
+        />
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="endpoint-key">API key (optional)</Label>
-        <Input id="endpoint-key" type="password" value={draft.key} onChange={(e) => setDraft({ ...draft, key: e.target.value })} onBlur={commit} />
+        <Input
+          id="endpoint-key"
+          type="password"
+          value={draft.key}
+          onChange={(e) => setDraft({ ...draft, key: e.target.value })}
+          onBlur={commit}
+        />
       </div>
       <p className="text-xs text-muted-foreground">
-        Any OpenAI-compatible server works, e.g. Ollama (which uses MLX on Apple Silicon), LM Studio or llama-server. Keep it on this machine to keep things private.
+        Any OpenAI-compatible server works, e.g. Ollama (which uses MLX on Apple Silicon), LM Studio or llama-server.
+        Keep it on this machine to keep things private.
       </p>
     </div>
   )
@@ -204,17 +295,29 @@ function UpdatesCard({ settings, set }: { settings: Settings; set: (patch: Parti
   const { status } = update
   const unsupported = status.kind === 'unsupported'
   const busy = status.kind === 'checking' || status.kind === 'downloading'
-  const install = () => void window.oatmeal.installUpdate().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
+  const install = () =>
+    void window.oatmeal
+      .installUpdate()
+      .catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Updates</CardTitle>
-        <CardDescription>New versions come from Oatmeal's GitHub releases. Checking sends nothing about your meetings.</CardDescription>
+        <CardDescription>
+          New versions come from Oatmeal's GitHub releases. Checking sends nothing about your meetings.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        <Row title="Update automatically" description="Checks every few hours, downloads in the background, and installs when you quit or restart.">
-          <Switch checked={settings.autoUpdate && !unsupported} disabled={unsupported} onCheckedChange={(v) => set({ autoUpdate: v })} />
+        <Row
+          title="Update automatically"
+          description="Checks every few hours, downloads in the background, and installs when you quit or restart."
+        >
+          <Switch
+            checked={settings.autoUpdate && !unsupported}
+            disabled={unsupported}
+            onCheckedChange={(v) => set({ autoUpdate: v })}
+          />
         </Row>
         <Row title={`Version ${update.currentVersion}`} description={updateDescription(status)}>
           {status.kind === 'ready' ? (
@@ -244,7 +347,8 @@ export function SettingsView({ onRunSetup }: { onRunSetup: () => void }) {
   const asr = asrModel(settings.asrModel)
   const llm = llmModel(settings.localModel)
   const set = (patch: Partial<Settings>) => void update(patch).then(refresh)
-  const request = (kind: 'microphone' | 'systemAudio') => void window.oatmeal.requestPermission(kind).then(setPermissions)
+  const request = (kind: 'microphone' | 'systemAudio') =>
+    void window.oatmeal.requestPermission(kind).then(setPermissions)
 
   return (
     <ScrollArea className="h-full">
@@ -278,7 +382,12 @@ export function SettingsView({ onRunSetup }: { onRunSetup: () => void }) {
               </Select>
             </Row>
             <Row title="" description={null}>
-              <ModelDownload kind="asr" installed={!!status?.asr.installed && !!status.asr.diarizationInstalled} sizeLabel={`(${formatBytes(asr.approxBytes)})`} status={status} />
+              <ModelDownload
+                kind="asr"
+                installed={!!status?.asr.installed && !!status.asr.diarizationInstalled}
+                sizeLabel={`(${formatBytes(asr.approxBytes)})`}
+                status={status}
+              />
             </Row>
             <Separator />
             <Row
@@ -296,8 +405,18 @@ export function SettingsView({ onRunSetup }: { onRunSetup: () => void }) {
             <CardDescription>Written by a local language model after each call.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <Row title="Run notes model" description={settings.llmProvider === 'local' ? `Built in, using llama.cpp with ${isMac ? 'Metal' : 'CUDA, Vulkan or the CPU'}.` : 'On a server you run.'}>
-              <Select value={settings.llmProvider} onValueChange={(v) => set({ llmProvider: v as Settings['llmProvider'] })}>
+            <Row
+              title="Run notes model"
+              description={
+                settings.llmProvider === 'local'
+                  ? `Built in, using llama.cpp with ${isMac ? 'Metal' : 'CUDA, Vulkan or the CPU'}.`
+                  : 'On a server you run.'
+              }
+            >
+              <Select
+                value={settings.llmProvider}
+                onValueChange={(v) => set({ llmProvider: v as Settings['llmProvider'] })}
+              >
                 <SelectTrigger className="w-56">
                   <SelectValue />
                 </SelectTrigger>
@@ -310,7 +429,10 @@ export function SettingsView({ onRunSetup }: { onRunSetup: () => void }) {
             {settings.llmProvider === 'local' ? (
               <>
                 <Row title="Model" description={llm.description}>
-                  <Select value={settings.localModel} onValueChange={(v) => set({ localModel: v as Settings['localModel'], localModelPath: '' })}>
+                  <Select
+                    value={settings.localModel}
+                    onValueChange={(v) => set({ localModel: v as Settings['localModel'], localModelPath: '' })}
+                  >
                     <SelectTrigger className="w-56">
                       <SelectValue />
                     </SelectTrigger>
@@ -334,14 +456,22 @@ export function SettingsView({ onRunSetup }: { onRunSetup: () => void }) {
         <Card>
           <CardHeader>
             <CardTitle>Meeting detection</CardTitle>
-            <CardDescription>Oatmeal notices when a call app starts using your microphone and asks before transcribing.</CardDescription>
+            <CardDescription>
+              Oatmeal notices when a call app starts using your microphone and asks before transcribing.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <Row title="Offer to transcribe calls" description={`Zoom, Teams, Slack, Discord, ${isMac ? 'FaceTime, ' : ''}Webex, and calls in your browser.`}>
+            <Row
+              title="Offer to transcribe calls"
+              description={`Zoom, Teams, Slack, Discord, ${isMac ? 'FaceTime, ' : ''}Webex, and calls in your browser.`}
+            >
               <Switch checked={settings.detectionEnabled} onCheckedChange={(v) => set({ detectionEnabled: v })} />
             </Row>
             {openAtLogin !== null && (
-              <Row title="Open at login" description="Oatmeal starts in the menu bar, so it's there for your calls. Otherwise it only notices calls while it's open.">
+              <Row
+                title="Open at login"
+                description="Oatmeal starts in the menu bar, so it's there for your calls. Otherwise it only notices calls while it's open."
+              >
                 <Switch checked={openAtLogin} onCheckedChange={setOpenAtLogin} />
               </Row>
             )}
@@ -364,7 +494,10 @@ export function SettingsView({ onRunSetup }: { onRunSetup: () => void }) {
                   {settings.ignoredApps.map((name) => (
                     <Badge key={name} variant="outline" className="gap-1 pr-1">
                       {name}
-                      <button aria-label={`Ask again for ${name}`} onClick={() => set({ ignoredApps: settings.ignoredApps.filter((a) => a !== name) })}>
+                      <button
+                        aria-label={`Ask again for ${name}`}
+                        onClick={() => set({ ignoredApps: settings.ignoredApps.filter((a) => a !== name) })}
+                      >
                         <XIcon className="size-3" />
                       </button>
                     </Badge>
@@ -390,7 +523,11 @@ export function SettingsView({ onRunSetup }: { onRunSetup: () => void }) {
           </CardHeader>
           <CardContent className="space-y-5">
             <PermissionRow kind="microphone" state={permissions?.microphone} onRequest={() => request('microphone')} />
-            <PermissionRow kind="systemAudio" state={permissions?.systemAudio} onRequest={() => request('systemAudio')} />
+            <PermissionRow
+              kind="systemAudio"
+              state={permissions?.systemAudio}
+              onRequest={() => request('systemAudio')}
+            />
           </CardContent>
         </Card>
 
@@ -400,8 +537,8 @@ export function SettingsView({ onRunSetup }: { onRunSetup: () => void }) {
           <CardHeader>
             <CardTitle>Your data</CardTitle>
             <CardDescription>
-              Transcripts, notes and models are stored only on this {machine}. Audio is never saved. Oatmeal only goes online to download models
-              and, if updates are on, to check for a new version.
+              Transcripts, notes and models are stored only on this {machine}. Audio is never saved. Oatmeal only goes
+              online to download models and, if updates are on, to check for a new version.
             </CardDescription>
           </CardHeader>
           <CardContent>

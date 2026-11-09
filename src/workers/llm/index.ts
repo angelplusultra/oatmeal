@@ -4,10 +4,10 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
-import { createModelDownloader, type ModelDownloader } from 'node-llama-cpp'
 import { llmModel } from '@shared/models'
 import type { LlmConfig, LlmEvents, LlmRequests } from '@shared/protocol'
 import { summarizeMeeting } from '@shared/summarize'
+import { createModelDownloader, type ModelDownloader } from 'node-llama-cpp'
 import { emit, installCrashReporting, serve } from '../rpc'
 import { EndpointLlm, LocalLlm } from './clients'
 
@@ -22,7 +22,8 @@ let idleTimer: NodeJS.Timeout | null = null
 let downloader: ModelDownloader | null = null
 const jobs = new Map<string, AbortController>()
 
-const modelPath = (modelsDir: string, modelId: Parameters<typeof llmModel>[0]) => path.join(modelsDir, 'llm', llmModel(modelId).fileName)
+const modelPath = (modelsDir: string, modelId: Parameters<typeof llmModel>[0]) =>
+  path.join(modelsDir, 'llm', llmModel(modelId).fileName)
 
 async function clientFor(config: LlmConfig, jobId: string): Promise<LocalLlm | EndpointLlm> {
   const key = config.provider === 'local' ? `local:${config.modelPath}` : `endpoint:${config.baseUrl}:${config.model}`
@@ -74,7 +75,8 @@ serve<LlmRequests>({
       fileName: info.fileName,
       skipExisting: true,
       deleteTempFileOnCancel: false,
-      onProgress: ({ totalSize, downloadedSize }) => send('download-progress', { file: info.fileName, loaded: downloadedSize, total: totalSize }),
+      onProgress: ({ totalSize, downloadedSize }) =>
+        send('download-progress', { file: info.fileName, loaded: downloadedSize, total: totalSize }),
     })
     try {
       return { path: await downloader.download() }

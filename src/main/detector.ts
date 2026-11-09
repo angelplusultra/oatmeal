@@ -6,12 +6,12 @@
  * - `stopped`: it released the mic. The orchestrator then uses `isPlaying` and speech activity to tell
  *   "left the call" from "muted" (see shared/call-end.ts).
  */
-import { spawn, type ChildProcess } from 'node:child_process'
+import { type ChildProcess, spawn } from 'node:child_process'
 import { EventEmitter } from 'node:events'
 import { matchMeetingApp } from '@shared/models'
 import type { DetectedApp } from '@shared/types'
 import { helperAvailable } from './helper'
-import { listAudioProcesses, type AudioProcess } from './pulse'
+import { type AudioProcess, listAudioProcesses } from './pulse'
 
 /** A meeting app must hold the mic this long before we prompt (filters blips like device probing). */
 const START_DEBOUNCE_MS = 2000

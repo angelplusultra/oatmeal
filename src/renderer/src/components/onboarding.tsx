@@ -2,19 +2,19 @@
  * First-run setup, shown in place of the app until it's done: audio access, the two models, and what to
  * expect on the first call. Calls aren't offered until the user finishes (see the orchestrator).
  */
-import {
-  ArrowLeftIcon,
-  AudioLinesIcon,
-  FileIcon,
-  FileTextIcon,
-  Loader2Icon,
-  MicIcon,
-  Volume2Icon,
-} from 'lucide-react'
+
+import { asrModel, LLM_MODELS, llmModel } from '@shared/models'
+import type {
+  DownloadProgress,
+  ModelKind,
+  ModelStatus,
+  PermissionState,
+  PermissionStatus,
+  Settings,
+} from '@shared/types'
+import { ArrowLeftIcon, AudioLinesIcon, FileIcon, FileTextIcon, Loader2Icon, MicIcon, Volume2Icon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { LLM_MODELS, asrModel, llmModel } from '@shared/models'
-import type { DownloadProgress, ModelKind, ModelStatus, PermissionState, PermissionStatus, Settings } from '@shared/types'
 import { DoneMark, PrivacyNote } from '@/components/pantry'
 import { EndpointFields } from '@/components/settings-view'
 import { Button } from '@/components/ui/button'
@@ -64,10 +64,14 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     <ScrollArea className="h-full">
       <div className="h-6 mac:h-12 [-webkit-app-region:drag]" />
       <div className="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-lg flex-col justify-center px-4 pb-12 sm:px-0">
-        {step !== 'welcome' && <StepHeader steps={steps.slice(1) as Exclude<StepId, 'welcome'>[]} current={index - 1} onBack={back} />}
+        {step !== 'welcome' && (
+          <StepHeader steps={steps.slice(1) as Exclude<StepId, 'welcome'>[]} current={index - 1} onBack={back} />
+        )}
         <div>
           {step === 'welcome' && <Welcome onNext={next} />}
-          {step === 'permissions' && <PermissionsStep permissions={permissions} onChange={setPermissions} onNext={next} />}
+          {step === 'permissions' && (
+            <PermissionsStep permissions={permissions} onChange={setPermissions} onNext={next} />
+          )}
           {step === 'models' && <ModelsStep settings={settings} status={status} set={set} onNext={next} />}
           {step === 'ready' && <ReadyStep status={status} settings={settings} onDone={onDone} />}
         </div>
@@ -76,7 +80,15 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   )
 }
 
-function StepHeader({ steps, current, onBack }: { steps: Exclude<StepId, 'welcome'>[]; current: number; onBack: () => void }) {
+function StepHeader({
+  steps,
+  current,
+  onBack,
+}: {
+  steps: Exclude<StepId, 'welcome'>[]
+  current: number
+  onBack: () => void
+}) {
   return (
     <div className="mb-8 space-y-3">
       <div className="flex items-center justify-between">
@@ -91,7 +103,9 @@ function StepHeader({ steps, current, onBack }: { steps: Exclude<StepId, 'welcom
         {steps.map((id, i) => (
           <li key={id} className="space-y-1.5">
             <div className={cn('h-1.5 rounded-full', i <= current ? 'bg-brand' : 'bg-track')} />
-            <div className={cn('text-xs', i === current ? 'font-medium text-foreground' : 'text-muted-foreground')}>{STEP_LABELS[id]}</div>
+            <div className={cn('text-xs', i === current ? 'font-medium text-foreground' : 'text-muted-foreground')}>
+              {STEP_LABELS[id]}
+            </div>
           </li>
         ))}
       </ol>
@@ -109,10 +123,22 @@ function StepTitle({ title, description }: { title: string; description: React.R
 }
 
 /** One line in a step's list: an icon, what it is and why, and its state or action on the right. */
-function Item({ icon, title, description, children }: { icon: React.ReactNode; title: React.ReactNode; description: React.ReactNode; children?: React.ReactNode }) {
+function Item({
+  icon,
+  title,
+  description,
+  children,
+}: {
+  icon: React.ReactNode
+  title: React.ReactNode
+  description: React.ReactNode
+  children?: React.ReactNode
+}) {
   return (
     <li className="flex gap-3 p-4">
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-text [&_svg]:size-4">{icon}</div>
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-text [&_svg]:size-4">
+        {icon}
+      </div>
       <div className="min-w-0 flex-1 space-y-0.5">
         <div className="text-sm font-medium">{title}</div>
         <div className="text-sm text-muted-foreground">{description}</div>
@@ -155,7 +181,9 @@ function Welcome({ onNext }: { onNext: () => void }) {
         <ol className="space-y-2.5 text-sm">
           {SETUP_STEPS.map((text, i) => (
             <li key={text} className="flex items-center gap-3">
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-soft font-mono text-[11px] text-brand-text">{i + 1}</span>
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-soft font-mono text-[11px] text-brand-text">
+                {i + 1}
+              </span>
               {text}
             </li>
           ))}
@@ -230,7 +258,8 @@ function PermissionsStep({
       </ul>
       {denied && (
         <p className="mt-4 text-sm text-muted-foreground">
-          macOS only asks once. In System Settings, turn on Oatmeal, then come back here. Without these, calls are recorded as silence.
+          macOS only asks once. In System Settings, turn on Oatmeal, then come back here. Without these, calls are
+          recorded as silence.
         </p>
       )}
       <Button size="lg" className="mt-8" disabled={!ready} onClick={onNext}>
@@ -288,14 +317,24 @@ function PermissionItem({
 // ---------------------------------------------------------------- models
 
 /** Right-hand side of a model row: progress while downloading, then "Ready". */
-function DownloadState({ ready, download, size }: { ready: boolean; download: DownloadProgress | undefined; size: string }) {
+function DownloadState({
+  ready,
+  download,
+  size,
+}: {
+  ready: boolean
+  download: DownloadProgress | undefined
+  size: string
+}) {
   if (ready && !running(download)) return <Done label="Ready" />
   if (download && running(download)) {
     const pct = percent(download)
     return (
       <div className="flex w-36 items-center gap-2 pt-1.5">
         <Progress value={pct ?? 0} className="flex-1" />
-        <span className="w-9 text-right font-mono text-[11.5px] text-muted-foreground tabular-nums">{pct !== null ? `${pct}%` : '…'}</span>
+        <span className="w-9 text-right font-mono text-[11.5px] text-muted-foreground tabular-nums">
+          {pct !== null ? `${pct}%` : '…'}
+        </span>
       </div>
     )
   }
@@ -342,7 +381,11 @@ function ModelsStep({
       .then((file) => file && set({ localModelPath: file }))
       .catch((e: Error) => toast.error(e.message))
 
-  const notesName = usingServer ? 'Your model server' : settings.localModelPath ? settings.localModelPath.split('/').pop() : llm.name
+  const notesName = usingServer
+    ? 'Your model server'
+    : settings.localModelPath
+      ? settings.localModelPath.split('/').pop()
+      : llm.name
   const notesChoice = !usingServer && !settings.localModelPath && !notesReady && !running(llmDownload)
 
   let footer: React.ReactNode
@@ -359,7 +402,9 @@ function ModelsStep({
             Skip for now
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground">Without it, calls are transcribed but get no notes. You can set it up later in Settings.</p>
+        <p className="text-sm text-muted-foreground">
+          Without it, calls are transcribed but get no notes. You can set it up later in Settings.
+        </p>
       </>
     )
   } else if (speechReady) {
@@ -370,7 +415,8 @@ function ModelsStep({
         </Button>
         {running(llmDownload) && (
           <p className="text-sm text-muted-foreground">
-            The notes model keeps downloading in the background. Calls you record meanwhile get their notes when it’s done.
+            The notes model keeps downloading in the background. Calls you record meanwhile get their notes when it’s
+            done.
           </p>
         )}
       </>
@@ -399,7 +445,11 @@ function ModelsStep({
         description={`Two AI models run on this ${machine}: one to transcribe, one to write notes. They download once.`}
       />
       <ul className={LIST}>
-        <Item icon={<AudioLinesIcon />} title="Speech model" description={`${asr.name}. Turns what’s said into text as the call happens.`}>
+        <Item
+          icon={<AudioLinesIcon />}
+          title="Speech model"
+          description={`${asr.name}. Turns what’s said into text as the call happens.`}
+        >
           <DownloadState ready={speechReady} download={asrDownload} size={formatBytes(asr.approxBytes)} />
         </Item>
         <Item
@@ -410,7 +460,10 @@ function ModelsStep({
               {notesChoice ? 'Writes' : `${notesName}. Writes`} the summary, decisions and action items after each call.
               {notesChoice && (
                 <span className="mt-3 block space-y-3">
-                  <Select value={settings.localModel} onValueChange={(v) => set({ localModel: v as Settings['localModel'] })}>
+                  <Select
+                    value={settings.localModel}
+                    onValueChange={(v) => set({ localModel: v as Settings['localModel'] })}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
@@ -426,7 +479,12 @@ function ModelsStep({
                   {found && (
                     <span className="flex flex-wrap items-center gap-x-2 text-sm">
                       You already have it from {found.source}.
-                      <Button size="sm" variant="link" className="h-auto px-0" onClick={() => set({ localModelPath: found.path })}>
+                      <Button
+                        size="sm"
+                        variant="link"
+                        className="h-auto px-0"
+                        onClick={() => set({ localModelPath: found.path })}
+                      >
                         Use that copy
                       </Button>
                     </span>
@@ -436,7 +494,13 @@ function ModelsStep({
             </>
           }
         >
-          {usingServer ? notesReady ? <Done label="Set" /> : null : <DownloadState ready={notesReady} download={llmDownload} size={formatBytes(llm.sizeBytes)} />}
+          {usingServer ? (
+            notesReady ? (
+              <Done label="Set" />
+            ) : null
+          ) : (
+            <DownloadState ready={notesReady} download={llmDownload} size={formatBytes(llm.sizeBytes)} />
+          )}
         </Item>
       </ul>
 
@@ -448,7 +512,12 @@ function ModelsStep({
       {!running(llmDownload) && (
         <div className="mt-2 flex flex-wrap gap-x-4 text-sm">
           {usingServer || settings.localModelPath ? (
-            <Button variant="link" size="sm" className="px-0 text-muted-foreground" onClick={() => set({ llmProvider: 'local', localModelPath: '' })}>
+            <Button
+              variant="link"
+              size="sm"
+              className="px-0 text-muted-foreground"
+              onClick={() => set({ llmProvider: 'local', localModelPath: '' })}
+            >
               Download Oatmeal’s notes model instead
             </Button>
           ) : (
@@ -456,7 +525,12 @@ function ModelsStep({
               <Button variant="link" size="sm" className="px-0 text-muted-foreground" onClick={chooseFile}>
                 <FileIcon /> Use a GGUF file I have
               </Button>
-              <Button variant="link" size="sm" className="px-0 text-muted-foreground" onClick={() => set({ llmProvider: 'endpoint' })}>
+              <Button
+                variant="link"
+                size="sm"
+                className="px-0 text-muted-foreground"
+                onClick={() => set({ llmProvider: 'endpoint' })}
+              >
                 Use Ollama or LM Studio
               </Button>
             </>
@@ -471,7 +545,15 @@ function ModelsStep({
 
 // ---------------------------------------------------------------- ready
 
-function ReadyStep({ status, settings, onDone }: { status: ModelStatus | null; settings: Settings; onDone: () => void }) {
+function ReadyStep({
+  status,
+  settings,
+  onDone,
+}: {
+  status: ModelStatus | null
+  settings: Settings
+  onDone: () => void
+}) {
   const [openAtLogin, setOpenAtLogin] = useOpenAtLogin()
   const [wantLogin, setWantLogin] = useState(true)
   const llmDownload = status?.downloads.llm
@@ -487,12 +569,23 @@ function ReadyStep({ status, settings, onDone }: { status: ModelStatus | null; s
       <StepTitle title="You’re all set" description="Here’s what happens on your next call." />
       <ol className="space-y-4">
         {[
-          ['Join a call', 'In Zoom, Meet, Teams, Slack, Discord or FaceTime. A small panel in the corner asks “Transcribe this call?”'],
-          ['Oatmeal listens quietly', `Nothing pops up over your call. The ${isMac ? 'menu-bar' : 'tray'} icon turns red while it records.`],
-          ['Your notes arrive', `When the call ends, notes are written on this ${machine}, and the panel offers to open them.`],
+          [
+            'Join a call',
+            'In Zoom, Meet, Teams, Slack, Discord or FaceTime. A small panel in the corner asks “Transcribe this call?”',
+          ],
+          [
+            'Oatmeal listens quietly',
+            `Nothing pops up over your call. The ${isMac ? 'menu-bar' : 'tray'} icon turns red while it records.`,
+          ],
+          [
+            'Your notes arrive',
+            `When the call ends, notes are written on this ${machine}, and the panel offers to open them.`,
+          ],
         ].map(([title, body], i) => (
           <li key={title} className="flex gap-3">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand font-mono text-xs font-medium text-brand-foreground">{i + 1}</span>
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand font-mono text-xs font-medium text-brand-foreground">
+              {i + 1}
+            </span>
             <div>
               <div className="text-sm font-medium">{title}</div>
               <div className="text-sm text-muted-foreground">{body}</div>
@@ -503,7 +596,8 @@ function ReadyStep({ status, settings, onDone }: { status: ModelStatus | null; s
 
       <div className="mt-8 space-y-4 rounded-xl border bg-card p-4 shadow-card">
         <p className="text-sm text-muted-foreground">
-          Oatmeal lives in the {isMac ? 'menu bar' : 'system tray'}. Closing this window doesn’t quit it, and you can start recording any time from there.
+          Oatmeal lives in the {isMac ? 'menu bar' : 'system tray'}. Closing this window doesn’t quit it, and you can
+          start recording any time from there.
         </p>
         {openAtLogin !== null && (
           <div className="flex items-center justify-between gap-4">

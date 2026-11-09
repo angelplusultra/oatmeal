@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { callEndDecision, QUIET_GRACE_MS, type CallEndInput } from './call-end'
+import { type CallEndInput, callEndDecision, QUIET_GRACE_MS } from './call-end'
 
 const base: CallEndInput = {
   now: 100_000,

@@ -1,6 +1,6 @@
-import { utilityProcess, type UtilityProcess } from 'electron'
 import { EventEmitter } from 'node:events'
 import type { WorkerEvent, WorkerRequest, WorkerResponse } from '@shared/protocol'
+import { type UtilityProcess, utilityProcess } from 'electron'
 
 type Payload<R, K extends keyof R> = R[K] extends { payload: infer P } ? P : never
 type Result<R, K extends keyof R> = R[K] extends { result: infer T } ? T : never

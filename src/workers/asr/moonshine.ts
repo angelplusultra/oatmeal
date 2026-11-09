@@ -7,8 +7,9 @@
  * more stack than those threads have. This module only runs inside the ASR utility process, which does
  * nothing else, so blocking its thread for a transcription pass is fine.
  */
-import koffi from 'koffi'
+
 import path from 'node:path'
+import koffi from 'koffi'
 
 const LIB_NAMES: Record<string, string> = {
   darwin: 'libmoonshine.dylib',
@@ -91,15 +92,21 @@ export class MoonshineLibrary {
       version: f('int32_t moonshine_get_version(void)'),
       errorToString: f('const char *moonshine_error_to_string(int32_t)'),
       freeBuffer: f('void moonshine_free_buffer(void *ptr)'),
-      sttDeps: f('int32_t moonshine_get_stt_dependencies(const char *language, const moonshine_option_t *options, uint64_t count, _Out_ void **json)'),
+      sttDeps: f(
+        'int32_t moonshine_get_stt_dependencies(const char *language, const moonshine_option_t *options, uint64_t count, _Out_ void **json)',
+      ),
       diarizationDeps: f('int32_t moonshine_get_diarization_dependencies(_Out_ void **json)'),
-      load: f('int32_t moonshine_load_transcriber_from_files(const char *path, uint32_t arch, const moonshine_option_t *options, uint64_t count, int32_t version)'),
+      load: f(
+        'int32_t moonshine_load_transcriber_from_files(const char *path, uint32_t arch, const moonshine_option_t *options, uint64_t count, int32_t version)',
+      ),
       freeTranscriber: f('void moonshine_free_transcriber(int32_t t)'),
       createStream: f('int32_t moonshine_create_stream(int32_t t, uint32_t flags)'),
       freeStream: f('int32_t moonshine_free_stream(int32_t t, int32_t s)'),
       startStream: f('int32_t moonshine_start_stream(int32_t t, int32_t s)'),
       stopStream: f('int32_t moonshine_stop_stream(int32_t t, int32_t s)'),
-      addAudio: f('int32_t moonshine_transcribe_add_audio_to_stream(int32_t t, int32_t s, const float *audio, uint64_t len, int32_t rate, uint32_t flags)'),
+      addAudio: f(
+        'int32_t moonshine_transcribe_add_audio_to_stream(int32_t t, int32_t s, const float *audio, uint64_t len, int32_t rate, uint32_t flags)',
+      ),
       transcribe: f('int32_t moonshine_transcribe_stream(int32_t t, int32_t s, uint32_t flags, _Out_ void **out)'),
     }
   }
@@ -227,7 +234,10 @@ function toLine(index: number, raw: RawLine): MoonshineLine {
     majoritySpeaker: () => {
       const count = Number(raw.speaker_span_count)
       if (!count || !raw.speaker_spans) return null
-      const spans = koffi.decode(raw.speaker_spans, koffi.array(SpeakerSpan, count)) as { duration: number; speaker_index: number }[]
+      const spans = koffi.decode(raw.speaker_spans, koffi.array(SpeakerSpan, count)) as {
+        duration: number
+        speaker_index: number
+      }[]
       const totals = new Map<number, number>()
       for (const s of spans) totals.set(s.speaker_index, (totals.get(s.speaker_index) ?? 0) + s.duration)
       let best: number | null = null

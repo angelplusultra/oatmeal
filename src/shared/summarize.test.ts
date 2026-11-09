@@ -1,20 +1,50 @@
 import { describe, expect, it } from 'vitest'
-import { MAP_SCHEMA, NOTES_SCHEMA, REDUCE_SCHEMA, renderSummaryMarkdown, summarizeMeeting, verifyChunkNotes, type JsonSchema, type LlmClient } from './summarize'
+import {
+  type JsonSchema,
+  type LlmClient,
+  MAP_SCHEMA,
+  NOTES_SCHEMA,
+  REDUCE_SCHEMA,
+  renderSummaryMarkdown,
+  summarizeMeeting,
+  verifyChunkNotes,
+} from './summarize'
 import type { Chunk, Turn } from './transcript'
 
 const turns: Turn[] = [
   { speaker: 'me', label: 'You', startMs: 0, endMs: 5000, text: 'Let us talk about the pricing change.' },
-  { speaker: 'sys:0', label: 'Priya', startMs: 210_000, endMs: 215_000, text: 'Decision: we grandfather existing customers for twelve months.' },
-  { speaker: 'sys:1', label: 'Speaker 2', startMs: 490_000, endMs: 495_000, text: 'Priya, can you draft the Stripe migration plan by next Friday?' },
+  {
+    speaker: 'sys:0',
+    label: 'Priya',
+    startMs: 210_000,
+    endMs: 215_000,
+    text: 'Decision: we grandfather existing customers for twelve months.',
+  },
+  {
+    speaker: 'sys:1',
+    label: 'Speaker 2',
+    startMs: 490_000,
+    endMs: 495_000,
+    text: 'Priya, can you draft the Stripe migration plan by next Friday?',
+  },
   { speaker: 'sys:0', label: 'Priya', startMs: 496_000, endMs: 499_000, text: 'Yes, I will.' },
 ]
 
 function chunkOf(ts: Turn[]): Chunk {
-  return { index: 0, turns: ts, startMs: ts[0].startMs, endMs: ts.at(-1)!.endMs, text: ts.map((t) => t.text).join('\n') }
+  return {
+    index: 0,
+    turns: ts,
+    startMs: ts[0].startMs,
+    endMs: ts.at(-1)!.endMs,
+    text: ts.map((t) => t.text).join('\n'),
+  }
 }
 
 /** A scripted LLM that records which schema each call used. */
-function fakeLlm(respond: (schema: JsonSchema, prompt: string) => unknown, tokensPerChar = 0.25): LlmClient & { calls: JsonSchema[] } {
+function fakeLlm(
+  respond: (schema: JsonSchema, prompt: string) => unknown,
+  tokensPerChar = 0.25,
+): LlmClient & { calls: JsonSchema[] } {
   const calls: JsonSchema[] = []
   return {
     modelName: 'fake',
@@ -79,7 +109,9 @@ describe('summarizeMeeting, short meeting (single pass)', () => {
   it('writes the notes in one call, then verifies and de-duplicates them in code', async () => {
     const llm = fakeLlm(() => singlePassNotes)
     const progress: string[] = []
-    const summary = await summarizeMeeting(turns, llm, { onProgress: (p) => progress.push(`${p.stage}:${p.done}/${p.total}`) })
+    const summary = await summarizeMeeting(turns, llm, {
+      onProgress: (p) => progress.push(`${p.stage}:${p.done}/${p.total}`),
+    })
 
     expect(llm.calls).toEqual([NOTES_SCHEMA])
     expect(summary.title).toBe('Pricing sync')
@@ -97,7 +129,11 @@ describe('summarizeMeeting, short meeting (single pass)', () => {
 
   it('reuses a cached result', async () => {
     const cache = new Map<string, unknown>()
-    await summarizeMeeting(turns, fakeLlm(() => singlePassNotes), { mapCache: cache })
+    await summarizeMeeting(
+      turns,
+      fakeLlm(() => singlePassNotes),
+      { mapCache: cache },
+    )
     const second = fakeLlm(() => singlePassNotes)
     await summarizeMeeting(turns, second, { mapCache: cache })
     expect(second.calls).toHaveLength(0)
@@ -124,7 +160,9 @@ describe('summarizeMeeting, long meeting (map → reduce)', () => {
       // Like a real model, only report what is in this chunk.
       return {
         topics: [{ title: 'Pricing', points: ['Existing customers keep old prices for 12 months'] }],
-        decisions: prompt.includes('twelve months') ? [{ text: 'Grandfather existing customers for 12 months', ts: '03:30' }] : [],
+        decisions: prompt.includes('twelve months')
+          ? [{ text: 'Grandfather existing customers for 12 months', ts: '03:30' }]
+          : [],
         actionItems: prompt.includes('Stripe')
           ? [{ task: 'Draft the Stripe migration plan', owner: 'Priya', due: 'next Friday', ts: '08:10' }]
           : prompt.includes('pricing change')
@@ -155,12 +193,21 @@ describe('summarizeMeeting, long meeting (map → reduce)', () => {
       }
     })
     const progress: string[] = []
-    const summary = await summarizeMeeting(turns, llm, { ...options, onProgress: (p) => progress.push(`${p.stage}:${p.done}/${p.total}`) })
+    const summary = await summarizeMeeting(turns, llm, {
+      ...options,
+      onProgress: (p) => progress.push(`${p.stage}:${p.done}/${p.total}`),
+    })
 
     expect(llm.calls.filter((s) => s === MAP_SCHEMA)).toHaveLength(4)
     expect(summary.decisions).toEqual([{ text: 'Grandfather existing customers for 12 months', ts: 210_000 }])
     // "Bob" is not supported by the source note, so the verified owner wins; the due date is carried over.
-    expect(summary.actionItems[1]).toEqual({ task: 'Draft Stripe migration plan', owner: 'Priya', due: 'next Friday', ts: 490_000, done: false })
+    expect(summary.actionItems[1]).toEqual({
+      task: 'Draft Stripe migration plan',
+      owner: 'Priya',
+      due: 'next Friday',
+      ts: 490_000,
+      done: false,
+    })
     // A verified item the reduce step forgot is kept rather than lost.
     expect(summary.actionItems[0].task).toBe('Follow up with finance')
     expect(progress).toEqual(['map:0/4', 'map:1/4', 'map:2/4', 'map:3/4', 'map:4/4', 'reduce:0/1', 'reduce:1/1'])
@@ -173,8 +220,18 @@ describe('summarizeMeeting, long meeting (map → reduce)', () => {
       keyPoints: [],
       decisions: [],
       actionItems: [
-        { task: 'Own the migration plan and have a first draft by next Friday.', owner: 'Speaker 2', due: null, ids: ['A2'] },
-        { task: 'Have the migration plan draft ready by next Friday.', owner: 'Priya', due: 'next Friday', ids: ['A2'] },
+        {
+          task: 'Own the migration plan and have a first draft by next Friday.',
+          owner: 'Speaker 2',
+          due: null,
+          ids: ['A2'],
+        },
+        {
+          task: 'Have the migration plan draft ready by next Friday.',
+          owner: 'Priya',
+          due: 'next Friday',
+          ids: ['A2'],
+        },
         { task: 'Follow up with finance', owner: 'You', due: null, ids: ['A1'] },
       ],
       openQuestions: [],

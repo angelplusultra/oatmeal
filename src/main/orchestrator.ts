@@ -11,8 +11,16 @@ import path from 'node:path'
 import type { OatmealEvents } from '@shared/api'
 import { callEndDecision } from '@shared/call-end'
 import { isEcho } from '@shared/echo'
-import { LLM_MODELS, asrModel, llmModel } from '@shared/models'
-import type { AsrEvents, AsrLine, AsrRequests, AudioSourceSpec, LlmConfig, LlmEvents, LlmRequests } from '@shared/protocol'
+import { asrModel, LLM_MODELS, llmModel } from '@shared/models'
+import type {
+  AsrEvents,
+  AsrLine,
+  AsrRequests,
+  AudioSourceSpec,
+  LlmConfig,
+  LlmEvents,
+  LlmRequests,
+} from '@shared/protocol'
 import { buildTurns } from '@shared/transcript'
 import type {
   DownloadProgress,
@@ -112,7 +120,10 @@ export class Orchestrator {
     asr.onExit((code) => {
       console.error(`[asr] worker exited unexpectedly (code ${code})`)
       if (this.state.kind === 'recording') {
-        deps.broadcast('toast', { kind: 'error', message: 'Transcription stopped unexpectedly. The transcript so far was saved.' })
+        deps.broadcast('toast', {
+          kind: 'error',
+          message: 'Transcription stopped unexpectedly. The transcript so far was saved.',
+        })
         void this.stop('error')
       }
     })
@@ -229,7 +240,8 @@ export class Orchestrator {
     const meetingId = this.currentMeetingId()
     if (!meetingId) return
     // Until diarization assigns a remote line to someone (it may later, via a 'speaker' event), call it "Them".
-    const speaker = line.channel === 'mic' ? 'me' : line.diarized && line.speakerIndex !== null ? `sys:${line.speakerIndex}` : 'them'
+    const speaker =
+      line.channel === 'mic' ? 'me' : line.diarized && line.speakerIndex !== null ? `sys:${line.speakerIndex}` : 'them'
     const draft: Omit<Segment, 'id'> = {
       meetingId,
       lineId: line.lineId,
@@ -415,7 +427,11 @@ export class Orchestrator {
       const meeting = this.deps.store.getMeeting(next)
       if (outcome && meeting && this.announceWhenDone.has(next)) {
         const preview =
-          outcome === 'ready' ? (meeting.summary?.tldr ?? null) : outcome === 'empty' ? 'Nothing was said, so there are no notes.' : meeting.error
+          outcome === 'ready'
+            ? (meeting.summary?.tldr ?? null)
+            : outcome === 'empty'
+              ? 'Nothing was said, so there are no notes.'
+              : meeting.error
         this.announceNotes(meeting, outcome, preview)
       }
     } finally {
@@ -442,12 +458,22 @@ export class Orchestrator {
 
   private llmConfig(settings: Settings): LlmConfig | { error: string } {
     if (settings.llmProvider === 'endpoint') {
-      if (!settings.endpointUrl || !settings.endpointModel) return { error: 'Set the endpoint URL and model in Settings.' }
-      return { provider: 'endpoint', baseUrl: settings.endpointUrl, model: settings.endpointModel, apiKey: settings.endpointApiKey }
+      if (!settings.endpointUrl || !settings.endpointModel)
+        return { error: 'Set the endpoint URL and model in Settings.' }
+      return {
+        provider: 'endpoint',
+        baseUrl: settings.endpointUrl,
+        model: settings.endpointModel,
+        apiKey: settings.endpointApiKey,
+      }
     }
     const modelPath = this.llmModelPath(settings)
     if (!fs.existsSync(modelPath)) {
-      return { error: settings.localModelPath ? `The notes model file is missing (${modelPath}). Choose another in Settings.` : 'Download the notes model in Settings to generate notes.' }
+      return {
+        error: settings.localModelPath
+          ? `The notes model file is missing (${modelPath}). Choose another in Settings.`
+          : 'Download the notes model in Settings to generate notes.',
+      }
     }
     // A Gemma we know keeps its display name; any other GGUF is named after its file.
     const base = path.basename(modelPath)
@@ -487,7 +513,10 @@ export class Orchestrator {
       // Set up during onboarding, still arriving: write these notes when the download finishes.
       this.waitingForModel.add(meetingId)
       store.updateMeeting(meetingId, { status: 'transcribed', error: null })
-      broadcast('toast', { kind: 'info', message: 'Your notes will be written when the notes model finishes downloading.' })
+      broadcast('toast', {
+        kind: 'info',
+        message: 'Your notes will be written when the notes model finishes downloading.',
+      })
       done()
       return null
     }
@@ -502,10 +531,20 @@ export class Orchestrator {
     done()
     let outcome: 'ready' | 'failed' = 'ready'
     try {
-      const { summary, cache } = await llm.request('summarize', { jobId: meetingId, config, turns, cache: store.getMapCache(meetingId) })
+      const { summary, cache } = await llm.request('summarize', {
+        jobId: meetingId,
+        config,
+        turns,
+        cache: store.getMapCache(meetingId),
+      })
       store.saveMapCache(meetingId, cache)
       const autoTitle = store.isTitleAuto(meetingId)
-      store.updateMeeting(meetingId, { status: 'done', summary, error: null, ...(autoTitle && summary.title ? { title: summary.title } : {}) })
+      store.updateMeeting(meetingId, {
+        status: 'done',
+        summary,
+        error: null,
+        ...(autoTitle && summary.title ? { title: summary.title } : {}),
+      })
     } catch (error) {
       outcome = 'failed'
       store.updateMeeting(meetingId, { status: 'failed', error: `Couldn't write notes: ${errorMessage(error)}` })
@@ -561,7 +600,8 @@ export class Orchestrator {
 
   /** The speech and notes models download in their own workers, so both can run at once. */
   async downloadModel(kind: ModelKind) {
-    if (this.downloading(kind)) throw new Error(`The ${kind === 'asr' ? 'speech' : 'notes'} model is already downloading`)
+    if (this.downloading(kind))
+      throw new Error(`The ${kind === 'asr' ? 'speech' : 'notes'} model is already downloading`)
     const settings = this.deps.getSettings()
     const finish = (patch: Partial<DownloadProgress>) => {
       this.downloads = { ...this.downloads, [kind]: { ...this.downloads[kind]!, ...patch } }

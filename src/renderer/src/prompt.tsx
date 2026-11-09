@@ -1,7 +1,7 @@
+import type { PanelAction, PanelState } from '@shared/types'
 import { AlertCircleIcon, FileTextIcon, LockIcon, MicIcon } from 'lucide-react'
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import type { PanelAction, PanelState } from '@shared/types'
 import { Button } from '@/components/ui/button'
 import './globals.css'
 import { followSystemTheme } from './lib/theme'
@@ -35,7 +35,9 @@ function Shell({
   return (
     <div className="flex h-screen flex-col justify-between gap-3 bg-card p-4 text-card-foreground select-none [-webkit-app-region:drag]">
       <div className="flex min-h-0 gap-3">
-        <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-[10px]', ICON_TONES[tone])}>{icon}</div>
+        <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-[10px]', ICON_TONES[tone])}>
+          {icon}
+        </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{title}</p>
           <div className="line-clamp-2 text-[13px] leading-snug text-muted-foreground">{body}</div>
@@ -62,7 +64,12 @@ function CallPanel({ name }: { name: string }) {
       note={`Transcribed on this ${machine}. Nothing is uploaded.`}
       actions={
         <>
-          <Button size="sm" variant="link" className="mr-auto px-0 text-muted-foreground" onClick={() => respond('never')}>
+          <Button
+            size="sm"
+            variant="link"
+            className="mr-auto px-0 text-muted-foreground"
+            onClick={() => respond('never')}
+          >
             Never for {name}
           </Button>
           <Button size="sm" variant="outline" onClick={() => respond('dismiss')}>

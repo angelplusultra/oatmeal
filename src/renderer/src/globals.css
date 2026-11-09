@@ -8,12 +8,12 @@
 
 @custom-variant dark (&:is(.dark *));
 /* macOS-only spacing, e.g. room for the traffic lights. main.tsx sets data-platform. */
-@custom-variant mac (&:where([data-platform=mac], [data-platform=mac] *));
+@custom-variant mac (&:where([data-platform="mac"], [data-platform="mac"] *));
 
 @theme inline {
-  --font-heading: 'Newsreader Variable', Georgia, serif;
-  --font-sans: 'Geist Variable', sans-serif;
-  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+  --font-heading: "Newsreader Variable", Georgia, serif;
+  --font-sans: "Geist Variable", sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);
@@ -185,40 +185,40 @@
 
 @layer base {
   * {
-  @apply border-border outline-ring/50;
+    @apply border-border outline-ring/50;
   }
   /* Electron gives clicks in a -webkit-app-region:drag area to the OS (window dragging) even when a portaled
      menu, popover or dialog is drawn on top, so those items ignore hover and clicks wherever they overlap a
      title-bar strip. Floating layers carve themselves out of the drag regions. */
   [data-radix-popper-content-wrapper],
-  [role=dialog],
-  [role=alertdialog],
+  [role="dialog"],
+  [role="alertdialog"],
   [data-sonner-toaster] {
-  -webkit-app-region: no-drag;
+    -webkit-app-region: no-drag;
   }
   /* Linux only (macOS keeps its native overlay scrollbars): native scrollbars, e.g. the transcript's, match
      the ScrollArea ones instead of Chromium's classic light ones. The -webkit- form (not scrollbar-color)
      draws no arrow buttons. main.tsx sets data-platform. */
-  [data-platform=other] ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  [data-platform="other"] ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
   }
-  [data-platform=other] ::-webkit-scrollbar-thumb {
-  border: 2px solid transparent;
-  border-radius: 9999px;
-  background: var(--border) content-box;
+  [data-platform="other"] ::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background: var(--border) content-box;
   }
-  [data-platform=other] ::-webkit-scrollbar-track,
-  [data-platform=other] ::-webkit-scrollbar-corner {
-  background: transparent;
+  [data-platform="other"] ::-webkit-scrollbar-track,
+  [data-platform="other"] ::-webkit-scrollbar-corner {
+    background: transparent;
   }
   body {
-  @apply bg-background text-foreground;
+    @apply bg-background text-foreground;
   }
   html {
-  @apply font-sans;
+    @apply font-sans;
   }
-  html.dark[data-platform=other] {
-  color-scheme: dark;
+  html.dark[data-platform="other"] {
+    color-scheme: dark;
   }
 }

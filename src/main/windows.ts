@@ -1,8 +1,8 @@
-import { app, BrowserWindow, nativeTheme, screen } from 'electron'
 import { execFile } from 'node:child_process'
 import path from 'node:path'
 import type { OatmealEvents } from '@shared/api'
 import { eventChannel } from '@shared/api'
+import { app, BrowserWindow, nativeTheme, screen } from 'electron'
 
 export class WindowManager {
   main: BrowserWindow | null = null
@@ -164,6 +164,7 @@ function floatPanelOnHyprland() {
   const rule = `hl.window_rule({ name = "oatmeal-call-panel", match = { title = "^${PANEL_TITLE}$" }, float = true, pin = true,
     no_initial_focus = true, move = { "(monitor_w-window_w-16)", "(monitor_h*0.04)" } })`
   execFile('hyprctl', ['eval', rule], (error, stdout) => {
-    if (error || stdout.trim() !== 'ok') console.warn('[windows] could not add the Hyprland panel rule:', error?.message ?? stdout.trim())
+    if (error || stdout.trim() !== 'ok')
+      console.warn('[windows] could not add the Hyprland panel rule:', error?.message ?? stdout.trim())
   })
 }
