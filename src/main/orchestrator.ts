@@ -84,7 +84,9 @@ export class Orchestrator {
   private readonly snoozed = new Set<string>()
   private readonly summaryQueue: string[] = []
   private summarizing: string | null = null
-  private download: DownloadProgress | null = null
+  private downloads: Partial<Record<ModelKind, DownloadProgress>> = {}
+  /** Meetings that ended while the notes model was still downloading. Their notes are written when it finishes. */
+  private readonly waitingForModel = new Set<string>()
   private lastProgressBroadcast = 0
   private captureErrorShown = false
   private startPending = false
@@ -117,7 +119,10 @@ export class Orchestrator {
     llm.on('download-progress', (p) => this.onDownloadProgress('llm', p))
     llm.on('progress', ({ jobId, ...p }) => deps.broadcast('summary-progress', { meetingId: jobId, ...p }))
 
-    detector.onStarted((app) => this.handleAppStarted(app))
+    // No call prompts until first-run setup is done: before that, "Transcribe" couldn't work.
+    detector.onStarted((app) => {
+      if (deps.getSettings().onboarded) this.handleAppStarted(app)
+    })
     detector.onStopped((app) => this.onAppStopped(app))
   }
 
@@ -476,7 +481,16 @@ export class Orchestrator {
       return 'empty'
     }
 
-    const config = this.llmConfig(this.deps.getSettings())
+    const settings = this.deps.getSettings()
+    const config = this.llmConfig(settings)
+    if ('error' in config && settings.llmProvider === 'local' && !settings.localModelPath && this.downloading('llm')) {
+      // Set up during onboarding, still arriving: write these notes when the download finishes.
+      this.waitingForModel.add(meetingId)
+      store.updateMeeting(meetingId, { status: 'transcribed', error: null })
+      broadcast('toast', { kind: 'info', message: 'Your notes will be written when the notes model finishes downloading.' })
+      done()
+      return null
+    }
     if ('error' in config) {
       store.updateMeeting(meetingId, { status: 'transcribed', error: config.error })
       broadcast('toast', { kind: 'error', message: config.error })
@@ -524,7 +538,7 @@ export class Orchestrator {
     return {
       asr: { id: settings.asrModel, ...asr },
       llm: { id: settings.localModel, installed, path: llmPath, found },
-      download: this.download,
+      downloads: this.downloads,
     }
   }
 
@@ -532,18 +546,27 @@ export class Orchestrator {
     this.deps.broadcast('model-status', await this.modelStatus())
   }
 
+  private downloading(kind: ModelKind): boolean {
+    const download = this.downloads[kind]
+    return !!download && !download.done && !download.error
+  }
+
   private onDownloadProgress(kind: ModelKind, p: { file: string; loaded: number; total: number | null }) {
-    this.download = { kind, ...p }
+    this.downloads = { ...this.downloads, [kind]: { kind, ...p } }
     const now = Date.now()
     if (now - this.lastProgressBroadcast < 250) return
     this.lastProgressBroadcast = now
     void this.broadcastModelStatus()
   }
 
+  /** The speech and notes models download in their own workers, so both can run at once. */
   async downloadModel(kind: ModelKind) {
-    if (this.download && !this.download.done && !this.download.error) throw new Error('A download is already in progress')
+    if (this.downloading(kind)) throw new Error(`The ${kind === 'asr' ? 'speech' : 'notes'} model is already downloading`)
     const settings = this.deps.getSettings()
-    this.download = { kind, file: '', loaded: 0, total: null }
+    const finish = (patch: Partial<DownloadProgress>) => {
+      this.downloads = { ...this.downloads, [kind]: { ...this.downloads[kind]!, ...patch } }
+    }
+    this.downloads = { ...this.downloads, [kind]: { kind, file: '', loaded: 0, total: null } }
     void this.broadcastModelStatus()
     try {
       if (kind === 'asr') {
@@ -551,15 +574,21 @@ export class Orchestrator {
       } else {
         await this.deps.llm.request('download', { modelId: settings.localModel, modelsDir: this.deps.paths.models })
       }
-      this.download = { ...this.download, done: true }
+      finish({ done: true })
     } catch (error) {
-      this.download = { ...this.download, error: errorMessage(error) }
+      finish({ error: errorMessage(error) })
     }
     await this.broadcastModelStatus()
+    if (kind === 'llm') {
+      // Calls that ended mid-download get their notes now (or the usual "download the model" error if it failed).
+      const waiting = [...this.waitingForModel]
+      this.waitingForModel.clear()
+      for (const meetingId of waiting) this.enqueueNotes(meetingId, { announce: true })
+    }
   }
 
   async cancelDownload() {
-    if (this.download?.kind === 'llm') await this.deps.llm.request('cancel-download', {})
+    if (this.downloading('llm')) await this.deps.llm.request('cancel-download', {})
   }
 
   /** Stops recording (keeping the transcript) and shuts the workers down. */

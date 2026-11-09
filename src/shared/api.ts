@@ -57,6 +57,9 @@ export interface OatmealInvoke {
   requestPermission(kind: 'microphone' | 'systemAudio'): Promise<PermissionStatus>
   openPermissionSettings(kind: 'microphone' | 'systemAudio'): Promise<void>
   openDataFolder(): Promise<void>
+  /** Whether Oatmeal opens at login, or null where it can't (Linux, and unpackaged dev builds). */
+  getOpenAtLogin(): Promise<boolean | null>
+  setOpenAtLogin(open: boolean): Promise<boolean | null>
   getPanel(): Promise<PanelState | null>
   respondToPanel(action: PanelAction): Promise<void>
   /** Where the main window should open (set when it was created by a notification or a new recording). */
@@ -91,6 +94,8 @@ export const INVOKE_METHODS = [
   'requestPermission',
   'openPermissionSettings',
   'openDataFolder',
+  'getOpenAtLogin',
+  'setOpenAtLogin',
   'getPanel',
   'respondToPanel',
   'takePendingNavigation',

@@ -89,6 +89,7 @@ export function defaultSettings(machine: { cpuCount: number; totalMemGB: number 
     endpointModel: '',
     endpointApiKey: '',
     autoUpdate: true,
+    onboarded: false,
   }
 }
 

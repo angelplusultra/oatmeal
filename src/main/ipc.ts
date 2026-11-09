@@ -1,4 +1,4 @@
-import { clipboard, dialog, ipcMain, shell } from 'electron'
+import { app, clipboard, dialog, ipcMain, shell } from 'electron'
 import fs from 'node:fs'
 import { INVOKE_METHODS, invokeChannel, type OatmealEvents, type OatmealInvoke } from '@shared/api'
 import { renderSummaryMarkdown } from '@shared/summarize'
@@ -21,6 +21,12 @@ interface IpcDeps {
   updateSettings(patch: Partial<Settings>): Settings
   updater: Updater
 }
+
+/**
+ * Login items need macOS (Electron has no Linux support) and a packaged app: in dev it would register the
+ * bare Electron binary.
+ */
+const loginItemsSupported = () => process.platform === 'darwin' && app.isPackaged
 
 const slug = (s: string) => s.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 60) || 'meeting'
 
@@ -142,6 +148,14 @@ export function registerIpc(deps: IpcDeps) {
     },
     async openDataFolder() {
       await shell.openPath(deps.paths.userData)
+    },
+    async getOpenAtLogin() {
+      return loginItemsSupported() ? app.getLoginItemSettings().openAtLogin : null
+    },
+    async setOpenAtLogin(open) {
+      if (!loginItemsSupported()) return null
+      app.setLoginItemSettings({ openAtLogin: open })
+      return app.getLoginItemSettings().openAtLogin
     },
     async getPanel() {
       return orchestrator.getPanel()

@@ -1,31 +1,25 @@
-import { CheckCircle2Icon, CircleIcon, LockIcon } from 'lucide-react'
+import { AlertCircleIcon, LockIcon } from 'lucide-react'
 import type { RecordingState } from '@shared/types'
 import type { View } from '@/App'
 import { RecordButton } from '@/components/record-button'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useModelStatus, usePermissions, useSettings } from '@/hooks/use-oatmeal'
-import { isMac, machine } from '@/lib/utils'
-
-function Step({ done, title, detail }: { done: boolean; title: string; detail: string }) {
-  return (
-    <li className="flex gap-3">
-      {done ? <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-emerald-600" /> : <CircleIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />}
-      <div>
-        <div className="text-sm font-medium">{title}</div>
-        <div className="text-sm text-muted-foreground">{detail}</div>
-      </div>
-    </li>
-  )
-}
+import { machine } from '@/lib/utils'
 
 export function HomeView({ onNavigate, recording }: { onNavigate: (v: View) => void; recording: RecordingState }) {
   const { status } = useModelStatus()
   const { permissions } = usePermissions()
   const { settings } = useSettings()
   const llmReady = settings?.llmProvider === 'endpoint' ? !!settings.endpointModel : !!status?.llm.installed
-  const permissionsReady = permissions?.microphone === 'granted' && permissions?.systemAudio === 'granted'
-  const setupDone = !!status?.asr.installed && llmReady
+  const llmDownload = status?.downloads.llm
+  const llmDownloading = !!llmDownload && !llmDownload.done && !llmDownload.error
+  // Onboarding covered setup. This only catches what broke since: a revoked permission, a deleted model.
+  const missing = [
+    status && !status.asr.installed && 'the speech model',
+    permissions && permissions.microphone !== 'granted' && permissions.microphone !== 'unknown' && 'microphone access',
+    permissions && permissions.systemAudio !== 'granted' && permissions.systemAudio !== 'unknown' && 'system audio access',
+  ].filter(Boolean) as string[]
 
   return (
     <div className="flex h-full flex-col">
@@ -41,23 +35,35 @@ export function HomeView({ onNavigate, recording }: { onNavigate: (v: View) => v
           </p>
         </div>
 
-        {!setupDone || !permissionsReady ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Finish setting up</CardTitle>
-              <CardDescription>A one-time download of the models{isMac && ', plus two macOS permissions'}.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ul className="space-y-3">
-                <Step done={!!status?.asr.installed} title="Speech model" detail="Moonshine, for transcription (about 300 MB)." />
-                <Step done={llmReady} title="Notes model" detail="Gemma 4, for writing notes (3–5 GB), or your own local server." />
-                <Step done={permissionsReady} title="Permissions" detail="Microphone and System Audio Recording." />
-              </ul>
-              <Button onClick={() => onNavigate({ kind: 'settings' })}>Open setup</Button>
-            </CardContent>
-          </Card>
+        {missing.length > 0 ? (
+          <Alert>
+            <AlertCircleIcon />
+            <AlertTitle>Oatmeal can’t record right now</AlertTitle>
+            <AlertDescription>It needs {missing.join(' and ')}.</AlertDescription>
+            <AlertAction>
+              <Button size="sm" variant="outline" onClick={() => onNavigate({ kind: 'settings' })}>
+                Open Settings
+              </Button>
+            </AlertAction>
+          </Alert>
         ) : (
-          <RecordButton recording={recording} size="lg" className="w-fit" />
+          <div className="space-y-3">
+            <RecordButton recording={recording} size="lg" className="w-fit" />
+            {status && !llmReady && (
+              <p className="text-sm text-muted-foreground">
+                {llmDownloading && llmDownload.total
+                  ? `Downloading the notes model… ${Math.round((llmDownload.loaded / llmDownload.total) * 100)}%. Calls you record meanwhile get their notes when it’s done.`
+                  : llmDownloading
+                    ? 'Downloading the notes model…'
+                    : 'No notes model yet, so calls are transcribed without notes. '}
+                {!llmDownloading && (
+                  <Button variant="link" className="h-auto p-0" onClick={() => onNavigate({ kind: 'settings' })}>
+                    Set one up
+                  </Button>
+                )}
+              </p>
+            )}
+          </div>
         )}
       </div>
     </div>

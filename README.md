@@ -34,7 +34,7 @@ npm run dev
 1. downloads the native Moonshine library from the official `moonshine-voice` wheel on PyPI (checksum-verified) into `resources/moonshine/`
 2. on macOS, builds the Swift audio helper into `resources/bin/oatmeal-audio`
 
-In the app, open **Settings** to download the speech model (~280 MB) and the notes model (Gemma 4 E4B, 5 GB, or E2B / 26B-A4B). Then allow the two permissions.
+On first launch, a short setup walks through the two macOS permissions and downloads the speech model (~300 MB) and the notes model (Gemma 4 E4B, 5 GB, or E2B / 26B-A4B), both at once. Oatmeal doesn't offer to transcribe calls until setup is done. **Settings → Run setup again** repeats it, and `OATMEAL_USER_DATA=/some/empty/dir npm run dev` shows it as a new user sees it (except the permission prompts, which need the packaged app).
 
 **Permissions in development.** macOS gives microphone and system-audio access to whatever launched Electron, so run `npm run dev` from an app that declares both permissions in its Info.plist (`NSMicrophoneUsageDescription` and `NSAudioCaptureUsageDescription`). T3 Code, VS Code and Cursor do. Ghostty only declares the microphone, so system audio comes through silent. Terminal.app declares neither. Use **Settings → Permissions → Allow**, and macOS will ask on behalf of that app.
 

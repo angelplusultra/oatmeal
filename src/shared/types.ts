@@ -97,6 +97,8 @@ export interface Settings {
   endpointApiKey: string
   /** Check GitHub Releases for a new version in the background and install it on the next restart. */
   autoUpdate: boolean
+  /** The user finished first-run setup. Until then the main window shows onboarding and calls aren't offered. */
+  onboarded: boolean
 }
 
 export type RecordingState =
@@ -115,7 +117,8 @@ export type ModelKind = 'asr' | 'llm'
 export interface ModelStatus {
   asr: { id: AsrModelId; installed: boolean; diarizationInstalled: boolean }
   llm: { id: LlmModelId; installed: boolean; path: string | null; /** Copies of `id` other apps already downloaded. */ found: FoundModel[] }
-  download: DownloadProgress | null
+  /** The latest download of each kind (running, finished or failed). The two can run at the same time. */
+  downloads: Partial<Record<ModelKind, DownloadProgress>>
 }
 
 export interface FoundModel {

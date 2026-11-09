@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { HomeView } from '@/components/home-view'
+import { Onboarding } from '@/components/onboarding'
 import { MeetingView } from '@/components/meeting-view'
 import { SettingsView } from '@/components/settings-view'
 import { Sidebar } from '@/components/sidebar'
-import { useEvent, useRecordingState } from '@/hooks/use-oatmeal'
+import { useEvent, useRecordingState, useSettings } from '@/hooks/use-oatmeal'
 import { cn } from '@/lib/utils'
 
 export type View = { kind: 'home' } | { kind: 'meeting'; id: string } | { kind: 'settings' }
@@ -17,6 +18,7 @@ export type View = { kind: 'home' } | { kind: 'meeting'; id: string } | { kind: 
 export function App() {
   const [view, setView] = useState<View>({ kind: 'home' })
   const recording = useRecordingState()
+  const { settings, update } = useSettings()
   /** Narrow windows (below md) hide the sidebar; this shows it over the content. */
   const [navOpen, setNavOpen] = useState(false)
   const go = (v: View) => {
@@ -44,6 +46,24 @@ export function App() {
     else toast(message)
   })
 
+  if (!settings || !settings.onboarded) {
+    return (
+      <TooltipProvider>
+        <div className="h-screen bg-background text-foreground">
+          {settings && (
+            <Onboarding
+              onDone={() => {
+                setView({ kind: 'home' })
+                void update({ onboarded: true })
+              }}
+            />
+          )}
+        </div>
+        <Toaster position="bottom-right" />
+      </TooltipProvider>
+    )
+  }
+
   return (
     <TooltipProvider>
       <div className="relative flex h-screen overflow-hidden bg-background text-foreground">
@@ -63,7 +83,7 @@ export function App() {
           <div className="min-h-0 flex-1">
             {view.kind === 'home' && <HomeView onNavigate={go} recording={recording} />}
             {view.kind === 'meeting' && <MeetingView key={view.id} meetingId={view.id} recording={recording} onNavigate={go} />}
-            {view.kind === 'settings' && <SettingsView />}
+            {view.kind === 'settings' && <SettingsView onRunSetup={() => void update({ onboarded: false })} />}
           </div>
         </main>
       </div>

@@ -13,7 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
-import { useModelStatus, usePermissions, useRecordingState, useSettings, useUpdateState } from '@/hooks/use-oatmeal'
+import { useModelStatus, useOpenAtLogin, usePermissions, useRecordingState, useSettings, useUpdateState } from '@/hooks/use-oatmeal'
 import { formatBytes, formatDay, formatTime } from '@/lib/format'
 import { isMac, machine } from '@/lib/utils'
 
@@ -30,7 +30,7 @@ function Row({ title, description, children }: { title: string; description?: Re
 }
 
 function ModelDownload({ kind, installed, sizeLabel, status }: { kind: ModelKind; installed: boolean; sizeLabel: string; status: ModelStatus | null }) {
-  const download = status?.download?.kind === kind ? status.download : null
+  const download = status?.downloads[kind] ?? null
   const running = !!download && !download.done && !download.error
   if (installed && !running) {
     return (
@@ -133,7 +133,7 @@ function LocalModelSource({ settings, status, set }: { settings: Settings; statu
       </Row>
     )
   }
-  if (found && !status?.llm.installed && status?.download?.kind !== 'llm') {
+  if (found && !status?.llm.installed && !status?.downloads.llm) {
     return (
       <Row
         title={`Found ${llm.name} from ${found.source}`}
@@ -155,7 +155,7 @@ function LocalModelSource({ settings, status, set }: { settings: Settings; statu
   )
 }
 
-function EndpointFields({ settings, update }: { settings: Settings; update: (p: Partial<Settings>) => void }) {
+export function EndpointFields({ settings, update }: { settings: Settings; update: (p: Partial<Settings>) => void }) {
   const [draft, setDraft] = useState({ url: settings.endpointUrl, model: settings.endpointModel, key: settings.endpointApiKey })
   const commit = () => update({ endpointUrl: draft.url.trim(), endpointModel: draft.model.trim(), endpointApiKey: draft.key })
   return (
@@ -234,8 +234,9 @@ function UpdatesCard({ settings, set }: { settings: Settings; set: (patch: Parti
   )
 }
 
-export function SettingsView() {
+export function SettingsView({ onRunSetup }: { onRunSetup: () => void }) {
   const { settings, update } = useSettings()
+  const [openAtLogin, setOpenAtLogin] = useOpenAtLogin()
   const { status, refresh } = useModelStatus()
   const { permissions, setPermissions } = usePermissions()
 
@@ -249,7 +250,12 @@ export function SettingsView() {
     <ScrollArea className="h-full">
       <div className="h-5 mac:h-12 [-webkit-app-region:drag]" />
       <div className="mx-auto max-w-3xl space-y-6 px-4 pb-12 sm:px-8">
-        <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
+          <Button variant="ghost" size="sm" onClick={onRunSetup}>
+            Run setup again
+          </Button>
+        </div>
 
         <Card>
           <CardHeader>
@@ -334,6 +340,11 @@ export function SettingsView() {
             <Row title="Offer to transcribe calls" description="Zoom, Teams, Slack, Discord, FaceTime, Webex, and calls in your browser.">
               <Switch checked={settings.detectionEnabled} onCheckedChange={(v) => set({ detectionEnabled: v })} />
             </Row>
+            {openAtLogin !== null && (
+              <Row title="Open at login" description="Oatmeal starts in the menu bar, so it's there for your calls. Otherwise it only notices calls while it's open.">
+                <Switch checked={openAtLogin} onCheckedChange={setOpenAtLogin} />
+              </Row>
+            )}
             <Row
               title="Stop when the call ends"
               description="Oatmeal stops ~2 seconds after the call app releases the mic and goes quiet. If it keeps playing audio (for example, you're muted), it stops after this many seconds without anyone talking."

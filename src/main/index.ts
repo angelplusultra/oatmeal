@@ -36,6 +36,11 @@ async function main() {
   const store = new Store(paths.db)
   const defaults = defaultSettings({ cpuCount: os.cpus().length, totalMemGB: os.totalmem() / 2 ** 30 })
   let settings = store.getSettings(defaults)
+  // People who recorded before onboarding existed skip it, and so do the dev hooks that simulate a call.
+  if (!settings.onboarded && (store.listMeetings().length > 0 || process.env.OATMEAL_AUTOSTART || process.env.OATMEAL_DEMO_PROMPT)) {
+    settings = { ...settings, onboarded: true }
+    store.saveSettings(settings)
+  }
 
   const windows = new WindowManager(outDir)
   let onBroadcast: <K extends keyof OatmealEvents>(event: K, payload: OatmealEvents[K]) => void = () => {}
@@ -151,7 +156,10 @@ async function main() {
     }
   }
 
-  if (!process.env.OATMEAL_START_HIDDEN) windows.showMain()
+  // Launched at login (macOS): stay in the menu bar. Until setup is done, show it so the user can finish.
+  const openedAtLogin = process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin && settings.onboarded
+  const startHidden = !!process.env.OATMEAL_START_HIDDEN || openedAtLogin
+  if (!startHidden) windows.showMain()
   if (settings.detectionEnabled) detector.start()
   activeUpdater.setEnabled(settings.autoUpdate)
   setTimeout(() => void screenshot('home'), 2000)
@@ -177,10 +185,10 @@ async function main() {
         app.exit(0)
       })
   })
-  const launchedHiddenAt = process.env.OATMEAL_START_HIDDEN ? Date.now() : 0
+  const launchedHiddenAt = startHidden ? Date.now() : 0
   app.on('activate', () => {
     // Dock click: open the window. But never as a side effect of answering the call prompt, so accepting
-    // "Transcribe" can't pop Oatmeal over the call. (And in dev, not as a side effect of launching hidden.)
+    // "Transcribe" can't pop Oatmeal over the call. (And not as a side effect of launching hidden, at login or in dev.)
     if (orchestrator.recentlyPrompted() || Date.now() - launchedHiddenAt < 5000) return
     windows.showMain()
   })
@@ -202,7 +210,7 @@ async function runDevSetup(orchestrator: Orchestrator) {
     console.log(`[dev] downloading ${kind} model`)
     await orchestrator.downloadModel(kind as ModelKind)
     const status = await orchestrator.modelStatus()
-    console.log(`[dev] ${kind} model:`, JSON.stringify(status.download))
+    console.log(`[dev] ${kind} model:`, JSON.stringify(status.downloads[kind as ModelKind]))
   }
   if (process.env.OATMEAL_DEMO_PROMPT) {
     // Simulates Zoom grabbing the mic, to exercise the prompt window without a real call.

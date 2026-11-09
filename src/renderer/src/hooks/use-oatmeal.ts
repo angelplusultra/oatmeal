@@ -106,6 +106,14 @@ export function usePermissions() {
   return { permissions, refresh, setPermissions }
 }
 
+/** Whether Oatmeal opens at login, or null where that isn't supported (and while loading). */
+export function useOpenAtLogin() {
+  const [open, setOpen] = useState<boolean | null>(null)
+  useEffect(() => void api().getOpenAtLogin().then(setOpen), [])
+  const update = useCallback((value: boolean) => void api().setOpenAtLogin(value).then(setOpen), [])
+  return [open, update] as const
+}
+
 export function useUpdateState() {
   const [state, setState] = useState<UpdateState | null>(null)
   useEffect(() => void api().getUpdateState().then(setState), [])
