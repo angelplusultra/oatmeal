@@ -15,14 +15,14 @@ export const ASR_MODELS: AsrModelInfo[] = [
     name: 'Moonshine Medium (English)',
     arch: 5,
     approxBytes: 305e6,
-    description: 'Most accurate (6.65% WER). Recommended on Apple Silicon Pro/Max chips.',
+    description: 'Most accurate (6.65% WER). Recommended on fast processors, like Apple Silicon Pro/Max.',
   },
   {
     id: 'small',
     name: 'Moonshine Small (English)',
     arch: 4,
     approxBytes: 160e6,
-    description: 'Lighter on CPU (7.84% WER). Good for MacBook Air and older Macs.',
+    description: 'Lighter on CPU (7.84% WER). Good for thin laptops and older computers.',
   },
 ]
 
@@ -54,7 +54,7 @@ export const LLM_MODELS: LlmModelInfo[] = [
     fileName: 'gemma-4-E4B-it-Q4_K_M.gguf',
     sizeBytes: 4.98e9,
     minRamGB: 16,
-    description: 'Recommended. Good notes on a 16 GB Mac.',
+    description: 'Recommended. Good notes with 16 GB of memory.',
   },
   {
     id: 'gemma-4-26b-a4b',

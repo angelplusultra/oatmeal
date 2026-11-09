@@ -337,7 +337,7 @@ export function SettingsView({ onRunSetup }: { onRunSetup: () => void }) {
             <CardDescription>Oatmeal notices when a call app starts using your microphone and asks before transcribing.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <Row title="Offer to transcribe calls" description="Zoom, Teams, Slack, Discord, FaceTime, Webex, and calls in your browser.">
+            <Row title="Offer to transcribe calls" description={`Zoom, Teams, Slack, Discord, ${isMac ? 'FaceTime, ' : ''}Webex, and calls in your browser.`}>
               <Switch checked={settings.detectionEnabled} onCheckedChange={(v) => set({ detectionEnabled: v })} />
             </Row>
             {openAtLogin !== null && (

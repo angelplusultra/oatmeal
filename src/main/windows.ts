@@ -109,6 +109,8 @@ export class WindowManager {
         // Linux: Chromium applies GTK's text-scaling-factor (1.18 on Omarchy) to the page but not to the
         // fixed size it gives a non-resizable window, so Wayland clips the panel. Resizable sizes correctly.
         resizable: process.platform === 'linux',
+        // Linux: a frameless window otherwise gets Chromium's shadow margin, which Hyprland adds to its size.
+        transparent: process.platform === 'linux',
         minimizable: false,
         maximizable: false,
         fullscreenable: false,
