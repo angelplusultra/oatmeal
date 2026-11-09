@@ -6,23 +6,50 @@ A small, private meeting-notes app for macOS and Linux (built and tested on [Oma
 
 Everything runs on your computer: speech-to-text with [Moonshine](https://github.com/moonshine-ai/moonshine), notes with [Gemma 4](https://ai.google.dev/gemma) through [llama.cpp](https://github.com/ggml-org/llama.cpp). Audio is never saved, and nothing is uploaded. Oatmeal only goes online to download models and to check GitHub for app updates (you can turn that off in Settings).
 
-> **Status:** early. The full pipeline works end to end. Live capture from a real call still needs testing on more setups.
+![Meeting notes in Oatmeal: a summary, action items with owners and timestamps, decisions and key points](docs/screenshots/notes.png)
+
+> **Status:** beta. The full pipeline works end to end. Live capture from a real call still needs testing on more setups.
+
+## Install
+
+Download the latest build from [GitHub Releases](https://github.com/angelplusultra/oatmeal/releases) (currently pre-releases):
+
+- **macOS 15+ on Apple Silicon:** `Oatmeal-<version>-arm64.dmg`, signed and notarized
+- **Linux x64:** `Oatmeal-<version>.AppImage`, or on Arch `sudo pacman -U oatmeal-<version>.pacman`. Needs PipeWire (`pw-record`, and `pactl` from pipewire-pulse)
+
+On first launch, a short setup asks for audio access (macOS) and downloads the models. Oatmeal then lives in the menu bar and updates itself from GitHub Releases. On Linux, only the AppImage updates itself; the pacman package updates through pacman.
+
+<img src="docs/screenshots/setup.png" alt="First-run setup: downloading the speech model and the notes model" width="720">
 
 ## Features
 
-- **Call detection.** Notices when a meeting app starts using the microphone and shows a small "Transcribe this call?" panel. Recording runs in the background, with a red menu-bar icon and no windows. It stops about 2 seconds after the app releases the mic and goes quiet. If you're only muted, it keeps recording.
-- **Notes ready.** When the notes are written, the same panel offers **View notes** or **Dismiss**. Nothing opens until you ask.
-- **Two-channel transcription.** Your microphone is "You". Everyone else comes from system audio and can be split into Speaker 1, Speaker 2… Click a name to rename it.
-- **Notes.** Map-reduce summarization with grammar-constrained JSON. Every decision and action item links back to the moment it was said.
-- **Your data.** Raw transcripts are viewable and exportable as .txt, .md or .json, and searchable. Notes copy or export as Markdown.
+<table>
+  <tr>
+    <td><img src="docs/screenshots/call-panel.png" alt="Zoom is using your microphone. Transcribe this call?" width="380"></td>
+    <td><img src="docs/screenshots/notes-ready.png" alt="Your notes are ready, with View notes and Dismiss" width="380"></td>
+  </tr>
+</table>
 
-## Requirements
+- **Call detection.** When Zoom, Teams, Slack, Discord, FaceTime, Webex or WhatsApp starts using the microphone, or a browser does (for Meet and other web calls), Oatmeal shows a small "Transcribe this call?" panel. **Never for…** stops asking for that app. Recording runs in the background, with a red menu-bar icon and no windows. It stops about 2 seconds after the app releases the mic and goes quiet. If you're only muted, it keeps recording.
+- **Notes ready.** When the notes are written, the same panel offers **View notes** or **Dismiss**. Nothing opens until you ask.
+- **Two-channel transcription.** Your microphone is "You". Everyone else comes from system audio and can be split into Speaker 1, Speaker 2… Click a name to rename it. **Regenerate notes** then uses the new names.
+- **Notes.** A summary, action items (with owners and due dates, and check-offs), decisions, key points and open questions. Every decision and action item links back to the moment it was said.
+- **Your choice of notes model.** Gemma 4 E2B, E4B (the default) or 26B A4B, built in with llama.cpp. Oatmeal finds a Gemma GGUF already on disk from LM Studio, llama.cpp or Hugging Face, or you can pick any GGUF file or point it at an OpenAI-compatible server you run (Ollama, LM Studio, llama-server).
+- **Your data.** Transcripts are searchable, viewable and exportable as .txt, .md or .json. Notes copy or export as Markdown.
+
+![A transcript with You, Priya and Marcus, each line timestamped](docs/screenshots/transcript.png)
+
+<img src="docs/screenshots/settings.png" alt="Settings: speech model, speaker separation, and the notes model" width="720">
+
+## Building from source
+
+### Requirements
 
 - macOS 15 or later on Apple Silicon, with Xcode Command Line Tools (Swift 5.9+) to build the audio helper
 - or Linux x64/arm64 with glibc 2.34+ and PipeWire (`pw-record`, and `pactl` from pipewire-pulse), plus `bsdtar` for setup. Notes run on CUDA or Vulkan when available, otherwise the CPU
 - Node.js 22.12+ and npm
 
-## Getting started
+### Getting started
 
 ```bash
 npm install
@@ -82,7 +109,7 @@ oatmeal-audio (Swift)  ──PCM──▶  ASR utility process  ──lines─�
   • mic + system tap (capture)    one stream per channel             meeting state machine
                                                                      │
                                   LLM utility process  ◀──transcript─┘
-                                  node-llama-cpp (Metal), map → verify → reduce
+                                  node-llama-cpp or an OpenAI-compatible server, map → verify → reduce
 ```
 
 - **Linux audio** (`src/main/pulse.ts`, `src/workers/asr/sources.ts`): no helper. Detection watches `pactl subscribe` and reads which processes have mic and playback streams. Capture runs two `pw-record` processes.
