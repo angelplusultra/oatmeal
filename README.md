@@ -103,20 +103,106 @@ This plays the WAV files as the two capture channels, transcribes them, writes n
 
 ## How it works
 
-```
-oatmeal-audio (Swift)  ──PCM──▶  ASR utility process  ──lines──▶  main process  ──▶  React UI
-  • mic users (detect)            libmoonshine via koffi             SQLite (node:sqlite + FTS5)
-  • mic + system tap (capture)    one stream per channel             meeting state machine
-                                                                     │
-                                  LLM utility process  ◀──transcript─┘
-                                  node-llama-cpp or an OpenAI-compatible server, map → verify → reduce
+Here's what happens during a call, start to finish. All of it runs on your computer.
+
+```mermaid
+flowchart LR
+    A["You join a call"] --> B["Oatmeal asks:<br/>Transcribe this call?"]
+    B -- Yes --> C["Records your mic<br/>and your speakers"]
+    C --> D["Turns speech into text<br/>while people talk"]
+    D --> E["Call ends"]
+    E --> F["A local AI model<br/>writes the notes"]
 ```
 
-- **Linux audio** (`src/main/pulse.ts`, `src/workers/asr/sources.ts`): no helper. Detection watches `pactl subscribe` and reads which processes have mic and playback streams. Capture runs two `pw-record` processes.
-- **`native/macos/OatmealAudio`**: a Swift CLI. `detect` polls Core Audio's per-process objects to see which apps are capturing the mic. `capture` records the mic (AVAudioEngine) and system audio through a Core Audio process tap (macOS 14.2+; needs no Screen Recording permission) as 16 kHz PCM.
-- **`src/workers/asr`**: native Moonshine through FFI. Partial-line decoding is off, and speaker separation runs only on the system channel, at a coarser cadence to save CPU.
-- **`src/shared/summarize.ts`**: the notes pipeline. It splits the transcript into ~6K-token chunks, extracts structured notes per chunk, drops items whose timestamps fall outside their chunk, then merges everything into the final notes.
-- **`src/main/orchestrator.ts`**: ties detection, prompting, recording, echo filtering, storage and the notes queue together.
+### 1. Noticing a call
+
+Oatmeal keeps an eye on which apps are using your microphone. When a call app (Zoom, Teams, Slack, a browser for Meet…) starts using it, a small panel asks **Transcribe this call?** Nothing is recorded until you say yes.
+
+- **macOS:** a small Swift helper asks Core Audio which apps have the mic open.
+- **Linux:** Oatmeal asks PipeWire for the same list (`pactl`).
+
+### 2. Recording both sides
+
+A call has two sides, so Oatmeal records two streams:
+
+| Stream | Who it is | macOS | Linux |
+|---|---|---|---|
+| Your microphone | You | the mic | the default mic (`pw-record`) |
+| What your speakers play | Everyone else | a Core Audio tap on system audio (no Screen Recording permission needed) | the default output (`pw-record`) |
+
+The audio stays in memory. It goes straight to speech-to-text and is never written to disk.
+
+### 3. Turning speech into text
+
+[Moonshine](https://github.com/moonshine-ai/moonshine) transcribes both streams as the call goes on. Each line shows up in the transcript shortly after it's said.
+
+- **Who said what.** Your mic is always "You". On the other stream, Oatmeal tells voices apart and labels them Speaker 1, Speaker 2… Click a name to rename it.
+- **Echo.** Without headphones, your mic also hears the other people through your speakers, so their words would show up twice. When a line from your mic says nearly the same words, at the same time, as a line from the speakers, Oatmeal hides the mic copy.
+
+### 4. Knowing when the call is over
+
+When the call app lets go of the mic, Oatmeal checks whether it's still playing sound:
+
+- **No sound either:** you left the call. Recording stops about 2 seconds later.
+- **Still playing sound:** you're probably just muted. Recording continues until nobody has spoken for a while (15 seconds by default, set in **Settings → Stop when the call ends**).
+
+### 5. Writing the notes
+
+```mermaid
+flowchart LR
+    T["Transcript"] --> C["Clean up<br/><sub>merge lines, drop echo,<br/>remove um / uh</sub>"]
+    C --> Q{"Short<br/>meeting?"}
+    Q -- Yes --> One["Write notes<br/>in one go"]
+    Q -- No --> Split["Split into<br/>~30 min pieces"]
+    Split --> Each["Notes for<br/>each piece"]
+    One --> Check["Fact-check<br/>against the transcript"]
+    Each --> Check
+    Check --> N["Summary, decisions,<br/>action items, open questions"]
+```
+
+The cleaned-up transcript goes to [Gemma 4](https://ai.google.dev/gemma), running locally through [llama.cpp](https://github.com/ggml-org/llama.cpp) (or to an OpenAI-compatible server you run, if you set one).
+
+- **Short meetings** (up to roughly half an hour of talk) fit in one go, and the model writes the notes in a single pass.
+- **Longer meetings** are split into pieces. The model writes notes for each piece, then combines them into one set.
+
+Either way, Oatmeal checks the model's work in plain code before showing it:
+
+- Every decision and action item must point to the moment it was said. If that moment isn't in the part of the transcript the model was reading, the item is dropped.
+- An action item's owner must be someone on the call or a name that was actually said. A due date must use words that were actually said. Otherwise that field is left blank.
+
+The model starts loading as the call ends and unloads after a minute of not being used, so it doesn't hold memory the rest of the day.
+
+### Where your data lives
+
+| What | Where |
+|---|---|
+| Audio | Nowhere. It's only in memory while it's being transcribed. |
+| Transcripts, notes, speaker names | A SQLite database (`oatmeal.db`) in Oatmeal's app data folder |
+| Models | Downloaded once, then kept on disk |
+| Internet | Used only to download models and check GitHub for updates (you can turn updates off) |
+
+### Where to find it in the code
+
+Oatmeal is an Electron app split into a few processes, so heavy work (audio, models) never slows down the UI.
+
+```mermaid
+flowchart LR
+    Audio["Audio capture<br/><sub>Swift helper / pw-record</sub>"] -- audio --> ASR["Speech-to-text process<br/><sub>Moonshine</sub>"]
+    ASR -- text --> Main["Main process<br/><sub>call state, database</sub>"]
+    Main <--> UI["Windows<br/><sub>React</sub>"]
+    Main -- transcript --> LLM["Notes process<br/><sub>Gemma via llama.cpp</sub>"]
+    LLM -- notes --> Main
+```
+
+| Part | Code |
+|---|---|
+| Call detection and audio capture on macOS | `native/macos/OatmealAudio` |
+| Call detection and audio capture on Linux | `src/main/pulse.ts`, `src/workers/asr/sources.ts` |
+| Speech-to-text | `src/workers/asr` |
+| Call flow: asking, recording, stopping, echo | `src/main/orchestrator.ts`, `src/shared/call-end.ts`, `src/shared/echo.ts` |
+| Notes | `src/shared/summarize.ts`, `src/workers/llm` |
+| Database | `src/main/db.ts` |
+| UI | `src/renderer` |
 
 ## Credits and licenses
 
