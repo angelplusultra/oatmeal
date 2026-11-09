@@ -1,4 +1,6 @@
 /** The API the preload script exposes to the renderer as `window.oatmeal`. */
+
+import type { OmarchyTheme } from './omarchy'
 import type {
   Channel,
   Meeting,
@@ -30,6 +32,8 @@ export interface OatmealEvents {
   navigate: { meetingId: string } | { view: 'settings' }
   toast: { kind: 'info' | 'success' | 'error'; message: string }
   'update-state': UpdateState
+  /** The Omarchy desktop theme changed (Linux). */
+  'omarchy-theme': OmarchyTheme
 }
 
 export interface OatmealInvoke {
@@ -68,6 +72,8 @@ export interface OatmealInvoke {
   checkForUpdates(): Promise<void>
   /** Quits and relaunches into the downloaded version. Refused while recording. */
   installUpdate(): Promise<void>
+  /** The Omarchy desktop theme's colors, or null to use Pantry (not on Omarchy). */
+  getOmarchyTheme(): Promise<OmarchyTheme | null>
 }
 
 export const INVOKE_METHODS = [
@@ -102,6 +108,7 @@ export const INVOKE_METHODS = [
   'getUpdateState',
   'checkForUpdates',
   'installUpdate',
+  'getOmarchyTheme',
 ] as const satisfies readonly (keyof OatmealInvoke)[]
 
 export interface OatmealApi extends OatmealInvoke {

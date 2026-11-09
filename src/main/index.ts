@@ -9,6 +9,7 @@ import { Store } from './db'
 import { MeetingDetector } from './detector'
 import { applyUserDataOverride, createScreenshotter, fakeAudioFromEnv } from './dev'
 import { registerIpc } from './ipc'
+import { OmarchyThemeWatcher } from './omarchy'
 import { Orchestrator } from './orchestrator'
 import { getPaths } from './paths'
 import { AppTray } from './tray'
@@ -47,6 +48,11 @@ async function main() {
   }
 
   const windows = new WindowManager(outDir)
+  const omarchyTheme = new OmarchyThemeWatcher((theme) => {
+    windows.omarchyTheme = theme
+    windows.broadcast('omarchy-theme', theme)
+  })
+  windows.omarchyTheme = omarchyTheme.current()
   let onBroadcast: <K extends keyof OatmealEvents>(event: K, payload: OatmealEvents[K]) => void = () => {}
   const broadcast = <K extends keyof OatmealEvents>(event: K, payload: OatmealEvents[K]) => {
     windows.broadcast(event, payload)
@@ -121,6 +127,7 @@ async function main() {
     getSettings: () => settings,
     updateSettings,
     updater: activeUpdater,
+    omarchyTheme,
   })
 
   const tray = new AppTray(paths.trayIcons, {
