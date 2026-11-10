@@ -1,0 +1,30 @@
+# Maintainer: Marcello Fitton
+# Template: packaging/aur/publish.sh fills in the @…@ values for each release and pushes the result to the AUR.
+# Edit this copy in the Oatmeal repo, not the one on the AUR.
+pkgname=oatmeal-notes-bin
+_version=@VERSION@
+pkgver=@PKGVER@
+pkgrel=1
+pkgdesc='Private, local meeting notes: detects calls, transcribes them on-device, and writes notes with a local LLM'
+arch=(x86_64)
+url=https://github.com/angelplusultra/oatmeal
+license=(MIT)
+depends=(pipewire pipewire-pulse gtk3 nss alsa-lib)
+provides=(oatmeal-notes)
+conflicts=(oatmeal-notes)
+options=(!strip !debug)
+source=(
+  "oatmeal-$_version.pacman::$url/releases/download/v$_version/oatmeal-$_version.pacman"
+  "LICENSE-$_version::https://raw.githubusercontent.com/angelplusultra/oatmeal/v$_version/LICENSE"
+)
+noextract=("oatmeal-$_version.pacman")
+sha256sums=('@SHA256_PACMAN@' '@SHA256_LICENSE@')
+
+package() {
+  # The files from the release's own pacman package, without its install script. That script links
+  # /usr/bin/oatmeal, which belongs to oatmeal-bin (an unrelated LLM chat app), so the command is oatmeal-notes.
+  bsdtar -xf "oatmeal-$_version.pacman" -C "$pkgdir" opt usr
+  install -d "$pkgdir/usr/bin"
+  ln -s /opt/Oatmeal/oatmeal "$pkgdir/usr/bin/oatmeal-notes"
+  install -Dm644 "LICENSE-$_version" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

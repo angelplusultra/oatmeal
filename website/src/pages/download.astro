@@ -4,32 +4,20 @@ import Base from '../layouts/Base.astro'
 import { getRelease, releasesUrl, repoUrl } from '../lib/release'
 
 const release = await getRelease()
-const missing = '<link from the releases page>'
 const mac = release?.mac
-const pacman = release?.pacman
 const appImage = release?.appImage
-const iconUrl = 'https://raw.githubusercontent.com/angelplusultra/oatmeal/main/build/icon.png'
-
-const archInstall = `curl -LO ${pacman?.url ?? missing}
-sudo pacman -U ./${pacman?.name ?? 'oatmeal-<version>.pacman'}`
-
-const audioCheck = `command -v pw-record pactl && pactl info | grep 'Server Name'`
 
 const appImageInstall = `mkdir -p ~/Applications
-curl -L -o ~/Applications/Oatmeal.AppImage ${appImage?.url ?? missing}
+curl -L -o ~/Applications/Oatmeal.AppImage ${appImage?.url ?? '<link from the releases page>'}
 chmod +x ~/Applications/Oatmeal.AppImage`
 
-const launcherEntry = `mkdir -p ~/.local/share/applications ~/.local/share/icons
-curl -L -o ~/.local/share/icons/oatmeal.png ${iconUrl}
-cat > ~/.local/share/applications/oatmeal.desktop <<EOF
-[Desktop Entry]
-Type=Application
-Name=Oatmeal
-Comment=Private, local meeting notes
-Exec=$HOME/Applications/Oatmeal.AppImage
-Icon=$HOME/.local/share/icons/oatmeal.png
-Categories=Office;
-EOF`
+// PipeWire's recorder, pactl, and FUSE (AppImages need it to start). Package names per distribution.
+const distros = [
+  ['Arch, Omarchy, Manjaro', 'sudo pacman -S --needed pipewire pipewire-pulse fuse2'],
+  ['Ubuntu, Debian, Mint, Pop!_OS', 'sudo apt install pipewire-bin pulseaudio-utils libfuse2t64'],
+  ['Fedora', 'sudo dnf install pipewire-utils pulseaudio-utils fuse-libs'],
+  ['openSUSE', 'sudo zypper install pipewire-tools pulseaudio-utils libfuse2'],
+]
 ---
 
 <Base
@@ -54,14 +42,9 @@ EOF`
         <small>Apple Silicon</small>
       </label>
       <label>
-        <input type="radio" name="os" value="arch" id="os-arch" />
-        <span>Arch &amp; Omarchy</span>
-        <small>pacman package</small>
-      </label>
-      <label>
         <input type="radio" name="os" value="linux" id="os-linux" />
-        <span>Other Linux</span>
-        <small>AppImage</small>
+        <span>Linux</span>
+        <small>x64 · any distribution</small>
       </label>
     </div>
 
@@ -107,73 +90,25 @@ EOF`
       </ol>
     </section>
 
-    <section class="panel panel-arch" aria-label="Arch and Omarchy">
+    <section class="panel panel-linux" aria-label="Linux">
       <ol class="steps">
         <li>
-          <h3>Install the package</h3>
+          <h3>Install what Oatmeal needs</h3>
           <p>
-            pacman installs Oatmeal along with <code>pipewire</code> and <code>pipewire-pulse</code>, which it needs to hear
-            your calls.
-          </p>
-          <Command code={archInstall} />
-          {pacman && <small class="file">{pacman.name} · {pacman.size}</small>}
-        </li>
-        <li>
-          <h3>Open Oatmeal</h3>
-          <p>
-            Launch it from your app launcher (<kbd>Super</kbd> + <kbd>Space</kbd> on Omarchy). Setup downloads the speech
-            and notes models once: about 5 GB with 16 GB of memory, or 3 GB with less. On Omarchy, Oatmeal picks up your
-            theme automatically.
-          </p>
-        </li>
-        <li>
-          <h3>Find it in your tray</h3>
-          <p>
-            The icon appears in your bar's tray (Waybar on Omarchy). To start Oatmeal with your desktop, turn on
-            <b>Open at login</b> in its Settings.
-          </p>
-        </li>
-        <li>
-          <h3>Updating</h3>
-          <p>
-            The pacman package doesn't update itself. When a new version is out, come back here and run step 1 again. This
-            page always has the latest.
-          </p>
-        </li>
-      </ol>
-    </section>
-
-    <section class="panel panel-linux" aria-label="Other Linux">
-      <ol class="steps">
-        <li>
-          <h3>Check your audio</h3>
-          <p>Oatmeal listens through PipeWire. Run this to check you have what it needs:</p>
-          <Command code={audioCheck} />
-          <p>
-            You're set if it prints two paths, then <code>Server Name: PulseAudio (on PipeWire …)</code>. If anything is
-            missing, do step 2. Otherwise skip to step 3.
-          </p>
-        </li>
-        <li>
-          <h3>Install what's missing</h3>
-          <p>
-            PipeWire's recorder, <code>pactl</code>, and FUSE, which AppImages need to start. Pick your distribution:
+            Oatmeal hears your calls through PipeWire, and AppImages need FUSE to start. Run the line for your distribution.
+            It's safe to run if you have them already.
           </p>
           <div class="distros">
-            <div>
-              <b>Ubuntu, Debian, Mint, Pop!_OS</b>
-              <Command code="sudo apt install pipewire-bin pulseaudio-utils libfuse2t64" />
-              <small>On Ubuntu 22.04 or Debian 12, use <code>libfuse2</code> instead of <code>libfuse2t64</code>.</small>
-            </div>
-            <div>
-              <b>Fedora</b>
-              <Command code="sudo dnf install pipewire-utils pulseaudio-utils fuse-libs" />
-            </div>
-            <div>
-              <b>openSUSE</b>
-              <Command code="sudo zypper install pipewire-tools pulseaudio-utils libfuse2" />
-            </div>
+            {
+              distros.map(([name, command]) => (
+                <div>
+                  <b>{name}</b>
+                  <Command code={command} />
+                </div>
+              ))
+            }
           </div>
+          <small class="file">On Ubuntu 22.04 or Debian 12, use <code>libfuse2</code> instead of <code>libfuse2t64</code>.</small>
         </li>
         <li>
           <h3>Download and install</h3>
@@ -188,15 +123,20 @@ EOF`
           }
         </li>
         <li>
-          <h3>Add it to your app launcher</h3>
-          <p>So you can open Oatmeal like any other app, instead of from a terminal:</p>
-          <Command code={launcherEntry} />
+          <h3>Open it once</h3>
+          <Command code="~/Applications/Oatmeal.AppImage" />
+          <p>
+            Running it from a terminal the first time means any error shows up right there. Oatmeal adds itself to your
+            app launcher, so after this you can open it like any other app. Setup downloads
+            the speech and notes models once: about 5 GB with 16 GB of memory, or 3 GB with less. On Omarchy, Oatmeal picks
+            up your theme automatically.
+          </p>
         </li>
         <li>
-          <h3>Open Oatmeal</h3>
+          <h3>Find it in your tray</h3>
           <p>
-            Launch it from your app launcher. Setup downloads the speech and notes models once: about 5 GB with 16 GB of
-            memory, or 3 GB with less. The AppImage updates itself.
+            The icon appears in your bar's tray (Waybar on Omarchy). Oatmeal updates itself, and <b>Open at login</b> in
+            its Settings starts it with your desktop.
           </p>
           <p>
             <b>On GNOME?</b> GNOME hides tray icons unless AppIndicator support is on. Ubuntu has it already. On Fedora, run
@@ -227,7 +167,7 @@ EOF`
           Oatmeal from Applications to get its window.
         </p>
         <p>
-          <b>Linux:</b> your desktop needs a tray. On GNOME, turn on AppIndicator support (see the Other Linux steps). On
+          <b>Linux:</b> your desktop needs a tray. On GNOME, turn on AppIndicator support (see step 4 for Linux). On
           Hyprland or Sway, make sure your bar has a tray module.
         </p>
       </details>
@@ -246,14 +186,14 @@ EOF`
         <summary>"Transcribe this call?" never shows up</summary>
         <p>
           The panel appears when a call app or browser starts using the microphone. You can always start one yourself
-          with <b>Start recording</b> in Oatmeal's window. On Linux, check that <code>pactl info</code> works (step 1 of
-          Other Linux).
+          with <b>Start recording</b> in Oatmeal's window. On Linux, check that <code>pactl info</code> works, or run
+          step 1 for Linux again.
         </p>
       </details>
       <details>
         <summary>The AppImage won't start</summary>
         <p>
-          Run it from a terminal to see why. A message about <code>libfuse.so.2</code> means FUSE is missing: see step 2.
+          Run it from a terminal to see why. A message about <code>libfuse.so.2</code> means FUSE is missing: see step 1.
           On Ubuntu 24.04 and newer, a message about <code>chrome-sandbox</code> means Ubuntu blocked Electron's sandbox.
           Please <a href={`${repoUrl}/issues`}>open an issue</a> with the output so we can fix the packaging.
         </p>
@@ -266,9 +206,7 @@ EOF`
         </p>
         <p><b>macOS:</b> drag Oatmeal from Applications to the Trash.</p>
         <Command code="rm -rf ~/Library/Application\ Support/Oatmeal" />
-        <p><b>Arch &amp; Omarchy:</b></p>
-        <Command code="sudo pacman -R oatmeal && rm -rf ~/.config/Oatmeal" />
-        <p><b>Other Linux:</b></p>
+        <p><b>Linux:</b></p>
         <Command
           code="rm -rf ~/Applications/Oatmeal.AppImage ~/.local/share/applications/oatmeal.desktop ~/.local/share/icons/oatmeal.png ~/.config/Oatmeal"
         />
@@ -282,7 +220,7 @@ EOF`
 </Base>
 
 <script is:inline>
-  // Preselect the visitor's system: #mac, #arch or #linux in the URL wins, then the browser's platform.
+  // Preselect the visitor's system: #mac or #linux in the URL wins, then the browser's platform.
   ;(() => {
     const pick = (os) => {
       const input = document.getElementById(`os-${os}`)
@@ -290,7 +228,7 @@ EOF`
     }
     const hash = location.hash.slice(1)
     const platform = `${navigator.userAgentData?.platform ?? navigator.platform ?? ''} ${navigator.userAgent}`
-    if (['mac', 'arch', 'linux'].includes(hash)) pick(hash)
+    if (['mac', 'linux'].includes(hash)) pick(hash)
     else if (/Windows/i.test(platform)) document.documentElement.dataset.windows = ''
     else if (/Linux|X11/i.test(platform) && !/Android/i.test(platform)) pick('linux')
     for (const input of document.querySelectorAll('input[name=os]')) {
@@ -328,7 +266,7 @@ EOF`
   /* Tabs: radio buttons, so they work without JavaScript. */
   .tabs {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
     margin: 48px 0 0;
     padding: 6px;
@@ -373,8 +311,7 @@ EOF`
     display: none;
   }
   .dl:has(#os-mac:checked) .panel-mac,
-  .dl:has(#os-arch:checked) .panel-arch,
-  .dl:has(#os-linux:checked) .panel-linux {
+    .dl:has(#os-linux:checked) .panel-linux {
     display: block;
     animation: fade 0.4s ease-out;
   }
@@ -478,14 +415,6 @@ EOF`
   }
   .distros small {
     margin-top: 8px;
-  }
-  kbd {
-    padding: 1px 6px;
-    border: 1px solid var(--line);
-    border-bottom-width: 2px;
-    border-radius: 6px;
-    font: 0.8rem var(--mono);
-    color: var(--text);
   }
 
   .try {

@@ -1,9 +1,9 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { autostartDesktopEntry, HIDDEN_FLAG } from '@shared/autostart'
+import { autostartDesktopEntry, HIDDEN_FLAG, launcherDesktopEntry } from '@shared/autostart'
 import { app } from 'electron'
-import { appImagePath } from './paths'
+import { appImagePath, getPaths } from './paths'
 
 /**
  * Open at login: Electron's login items on macOS, an XDG autostart entry on Linux. Packaged builds only: in dev
@@ -44,6 +44,32 @@ export function refreshOpenAtLogin() {
     if (process.platform === 'linux' && getOpenAtLogin()) setOpenAtLogin(true)
   } catch (error) {
     console.error('failed to refresh the autostart entry', error)
+  }
+}
+
+const dataHome = () => {
+  const xdg = process.env.XDG_DATA_HOME
+  return xdg && path.isAbsolute(xdg) ? xdg : path.join(os.homedir(), '.local', 'share')
+}
+
+/**
+ * Puts the AppImage in the app launcher. It installs no launcher entry itself, so Oatmeal writes one (and copies its
+ * icon) on every launch where the entry is missing or stale: AppImage updates rename the file to the new version.
+ */
+export function refreshLauncherEntry() {
+  const appImage = appImagePath()
+  if (!appImage) return
+  try {
+    const icon = path.join(dataHome(), 'icons', 'oatmeal.png')
+    const file = path.join(dataHome(), 'applications', 'oatmeal.desktop')
+    const entry = launcherDesktopEntry(appImage, icon)
+    if (fs.existsSync(icon) && fs.existsSync(file) && fs.readFileSync(file, 'utf8') === entry) return
+    fs.mkdirSync(path.dirname(icon), { recursive: true })
+    fs.copyFileSync(path.join(getPaths().resources, 'icon.png'), icon)
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, entry)
+  } catch (error) {
+    console.error('failed to write the launcher entry', error)
   }
 }
 
