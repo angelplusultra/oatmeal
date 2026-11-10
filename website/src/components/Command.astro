@@ -1,0 +1,59 @@
+---
+interface Props {
+  code: string
+}
+const { code } = Astro.props
+---
+
+<div class="cmd">
+  <pre><code>{code}</code></pre>
+  <button type="button" data-copy>Copy</button>
+</div>
+
+<script>
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-copy]')) {
+    button.addEventListener('click', async () => {
+      const code = button.parentElement?.querySelector('code')?.textContent ?? ''
+      await navigator.clipboard.writeText(code)
+      button.textContent = 'Copied'
+      setTimeout(() => {
+        button.textContent = 'Copy'
+      }, 1500)
+    })
+  }
+</script>
+
+<style>
+  .cmd {
+    position: relative;
+    margin: 14px 0 0;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #0e0c0a;
+  }
+  pre {
+    margin: 0;
+    padding: 14px 72px 14px 16px;
+    overflow-x: auto;
+    font-size: 0.95rem;
+    line-height: 1.7;
+  }
+  pre code {
+    color: #f0dcb8;
+  }
+  button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--muted);
+    font: 0.75rem var(--sans);
+    cursor: pointer;
+  }
+  button:hover {
+    color: var(--text);
+  }
+</style>

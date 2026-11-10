@@ -20,6 +20,8 @@ npm run dist:mac:local  # ad-hoc signed .app in dist/mac-arm64/ (needed to test 
 npm run dist:linux      # AppImage + Arch .pacman in dist/; dist:linux:dir for dist/linux-unpacked/
 ```
 
+**Website.** `website/` is a standalone Astro site with its own `package.json` (not an npm workspace): `cd website && npm i && npm run dev`. It imports the icon and screenshots from `assets/` and `docs/screenshots/`, and `.github/workflows/website.yml` deploys it to GitHub Pages on pushes to main that touch those paths.
+
 Biome (`biome.json`) lints and formats TS/JS/JSON/CSS; shadcn's generated `components/ui/` is excluded. Lint, typecheck and tests are the checks. `.github/workflows/ci.yml` runs all three on pushes to main and on PRs.
 
 **Releases.** `package.json` `version` is the source of truth (semver; 0.x until the app is stable). `npm version patch|minor|major` (or `prerelease --preid beta`) commits, tags `vX.Y.Z` and pushes (`postversion`). The tag triggers `.github/workflows/release.yml`: it checks the tag matches `package.json`, builds the macOS (macos-15) and Linux (ubuntu) packages, and publishes a GitHub Release with generated notes; tags with a `-` suffix become pre-releases. The macOS app is ad-hoc signed unless the `CSC_LINK`/`CSC_KEY_PASSWORD` secrets are set, and notarized when `APPLE_ID`/`APPLE_APP_SPECIFIC_PASSWORD`/`APPLE_TEAM_ID` are too.
