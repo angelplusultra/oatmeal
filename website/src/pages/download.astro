@@ -1,0 +1,494 @@
+---
+import Command from '../components/Command.astro'
+import Base from '../layouts/Base.astro'
+import { getRelease, releasesUrl, repoUrl } from '../lib/release'
+
+const release = await getRelease()
+const mac = release?.mac
+const appImage = release?.appImage
+
+const appImageInstall = `mkdir -p ~/Applications
+curl -L -o ~/Applications/Oatmeal.AppImage ${appImage?.url ?? '<link from the releases page>'}
+chmod +x ~/Applications/Oatmeal.AppImage`
+
+// PipeWire's recorder, pactl, and FUSE (AppImages need it to start). Package names per distribution.
+const distros = [
+  ['Arch, Omarchy, Manjaro', 'sudo pacman -S --needed pipewire pipewire-pulse fuse2'],
+  ['Ubuntu, Debian, Mint, Pop!_OS', 'sudo apt install pipewire-bin pulseaudio-utils libfuse2t64'],
+  ['Fedora', 'sudo dnf install pipewire-utils pulseaudio-utils fuse-libs'],
+  ['openSUSE', 'sudo zypper install pipewire-tools pulseaudio-utils libfuse2'],
+]
+---
+
+<Base
+  title="Download Oatmeal"
+  description="Download Oatmeal for macOS or Linux, with every step from install to your first meeting notes."
+>
+  <main class="dl">
+    <div class="glow" aria-hidden="true"></div>
+    <header>
+      <p class="eyebrow">{release ? `Download · v${release.version}` : 'Download'}</p>
+      <h1>Get <em>Oatmeal</em>.</h1>
+      <p class="lede">
+        Pick your system. Everything is here, from the download to your first meeting notes, in about five minutes.
+      </p>
+      <p class="windows-note">Looks like you're on Windows. Oatmeal runs on macOS and Linux for now.</p>
+    </header>
+
+    <div class="tabs" role="radiogroup" aria-label="Your system">
+      <label>
+        <input type="radio" name="os" value="mac" id="os-mac" checked />
+        <span>macOS</span>
+        <small>Apple Silicon</small>
+      </label>
+      <label>
+        <input type="radio" name="os" value="linux" id="os-linux" />
+        <span>Linux</span>
+        <small>x64 · any distribution</small>
+      </label>
+    </div>
+
+    <section class="panel panel-mac" aria-label="macOS">
+      <ol class="steps">
+        <li>
+          <h3>Download</h3>
+          <p>For Macs with Apple Silicon (M1 or later) on macOS 15 Sequoia or newer. Intel Macs aren't supported.</p>
+          <div class="get">
+            <a class="btn btn-honey" href={mac?.url ?? releasesUrl}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M5 21h14"></path></svg>
+              Download for Mac
+            </a>
+            {mac && <small>{mac.name} · {mac.size}</small>}
+          </div>
+        </li>
+        <li>
+          <h3>Drag it into Applications</h3>
+          <p>Open the downloaded <code>.dmg</code> and drag Oatmeal onto the Applications folder.</p>
+        </li>
+        <li>
+          <h3>Open it and allow audio</h3>
+          <p>
+            Open Oatmeal from Applications. It's signed and notarized by Apple, so it opens like any other app. Setup asks
+            for two permissions. Allow both:
+          </p>
+          <ul class="checks">
+            <li><b>Microphone</b>, to hear you.</li>
+            <li><b>System audio recording</b>, to hear everyone else on the call.</li>
+          </ul>
+        </li>
+        <li>
+          <h3>Let it fetch the models</h3>
+          <p>
+            Setup downloads the speech and notes models once: about 5 GB on a Mac with 16 GB of memory, or 3 GB with less.
+            After that, Oatmeal never needs the internet again.
+          </p>
+        </li>
+        <li>
+          <h3>Find the bowl in your menu bar</h3>
+          <p>Oatmeal lives in the menu bar. It updates itself and asks before restarting.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="panel panel-linux" aria-label="Linux">
+      <ol class="steps">
+        <li>
+          <h3>Install what Oatmeal needs</h3>
+          <p>
+            Oatmeal hears your calls through PipeWire, and AppImages need FUSE to start. Run the line for your distribution.
+            It's safe to run if you have them already.
+          </p>
+          <div class="distros">
+            {
+              distros.map(([name, command]) => (
+                <div>
+                  <b>{name}</b>
+                  <Command code={command} />
+                </div>
+              ))
+            }
+          </div>
+          <small class="file">On Ubuntu 22.04 or Debian 12, use <code>libfuse2</code> instead of <code>libfuse2t64</code>.</small>
+        </li>
+        <li>
+          <h3>Download and install</h3>
+          <p>This puts Oatmeal in <code>~/Applications</code>, so it doesn't get lost in Downloads, and makes it runnable:</p>
+          <Command code={appImageInstall} />
+          {
+            appImage && (
+              <small class="file">
+                Or <a href={appImage.url}>download {appImage.name}</a> ({appImage.size}) and do the same by hand.
+              </small>
+            )
+          }
+        </li>
+        <li>
+          <h3>Open it once</h3>
+          <Command code="~/Applications/Oatmeal.AppImage" />
+          <p>
+            Running it from a terminal the first time means any error shows up right there. Oatmeal adds itself to your
+            app launcher, so after this you can open it like any other app. Setup downloads
+            the speech and notes models once: about 5 GB with 16 GB of memory, or 3 GB with less. On Omarchy, Oatmeal picks
+            up your theme automatically.
+          </p>
+        </li>
+        <li>
+          <h3>Find it in your tray</h3>
+          <p>
+            The icon appears in your bar's tray (Waybar on Omarchy). Oatmeal updates itself, and <b>Open at login</b> in
+            its Settings starts it with your desktop.
+          </p>
+          <p>
+            <b>On GNOME?</b> GNOME hides tray icons unless AppIndicator support is on. Ubuntu has it already. On Fedora, run
+            <code>sudo dnf install gnome-shell-extension-appindicator</code>, log out and back in, and turn it on in the
+            Extensions app. KDE and most other desktops show the icon as is.
+          </p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="try">
+      <p class="eyebrow">Then</p>
+      <h2>Try it on a <em>real call</em>.</h2>
+      <p>
+        Start a call in Zoom, Meet, Teams, Slack, Discord or FaceTime. No one to call? Zoom's
+        <a href="https://zoom.us/test">test meeting</a> works. When the call takes your mic, a small panel asks
+        <b>Transcribe this call?</b> Click Transcribe, talk for a minute, and hang up. Shortly after, the same panel offers
+        <b>View notes</b>.
+      </p>
+    </section>
+
+    <section class="help">
+      <h2>Troubleshooting</h2>
+      <details>
+        <summary>I can't find the icon</summary>
+        <p>
+          <b>macOS:</b> on MacBooks with a notch, a crowded menu bar hides icons behind it. Quit an app or two, or open
+          Oatmeal from Applications to get its window.
+        </p>
+        <p>
+          <b>Linux:</b> your desktop needs a tray. On GNOME, turn on AppIndicator support (see step 4 for Linux). On
+          Hyprland or Sway, make sure your bar has a tray module.
+        </p>
+      </details>
+      <details>
+        <summary>The other people on the call are missing from the transcript</summary>
+        <p>
+          <b>macOS:</b> Oatmeal doesn't have system audio access, and macOS records silence instead of saying so. Open
+          System Settings → Privacy &amp; Security → Screen &amp; System Audio Recording, and turn on Oatmeal.
+        </p>
+        <p>
+          <b>Linux:</b> Oatmeal records whatever plays through your default output. If the call plays through a headset
+          that isn't the default, make it the default in your sound settings.
+        </p>
+      </details>
+      <details>
+        <summary>"Transcribe this call?" never shows up</summary>
+        <p>
+          The panel appears when a call app or browser starts using the microphone. You can always start one yourself
+          with <b>Start recording</b> in Oatmeal's window. On Linux, check that <code>pactl info</code> works, or run
+          step 1 for Linux again.
+        </p>
+      </details>
+      <details>
+        <summary>The AppImage won't start</summary>
+        <p>
+          Run it from a terminal to see why. A message about <code>libfuse.so.2</code> means FUSE is missing: see step 1.
+          On Ubuntu 24.04 and newer, a message about <code>chrome-sandbox</code> means Ubuntu blocked Electron's sandbox.
+          Please <a href={`${repoUrl}/issues`}>open an issue</a> with the output so we can fix the packaging.
+        </p>
+      </details>
+      <details>
+        <summary>How do I uninstall it?</summary>
+        <p>
+          First turn off <b>Open at login</b> in Settings if you turned it on, then quit Oatmeal from its icon. Your
+          meetings and the models live in the data folder, so delete that too if you want them gone.
+        </p>
+        <p><b>macOS:</b> drag Oatmeal from Applications to the Trash.</p>
+        <Command code="rm -rf ~/Library/Application\ Support/Oatmeal" />
+        <p><b>Linux:</b></p>
+        <Command
+          code="rm -rf ~/Applications/Oatmeal.AppImage ~/.local/share/applications/oatmeal.desktop ~/.local/share/icons/oatmeal.png ~/.config/Oatmeal"
+        />
+      </details>
+      <p class="more">
+        Still stuck? <a href={`${repoUrl}/issues`}>Open an issue</a>. Older versions are on the
+        <a href={releasesUrl}>releases page</a>.
+      </p>
+    </section>
+  </main>
+</Base>
+
+<script is:inline>
+  // Preselect the visitor's system: #mac or #linux in the URL wins, then the browser's platform.
+  ;(() => {
+    const pick = (os) => {
+      const input = document.getElementById(`os-${os}`)
+      if (input) input.checked = true
+    }
+    const hash = location.hash.slice(1)
+    const platform = `${navigator.userAgentData?.platform ?? navigator.platform ?? ''} ${navigator.userAgent}`
+    if (['mac', 'linux'].includes(hash)) pick(hash)
+    else if (/Windows/i.test(platform)) document.documentElement.dataset.windows = ''
+    else if (/Linux|X11/i.test(platform) && !/Android/i.test(platform)) pick('linux')
+    for (const input of document.querySelectorAll('input[name=os]')) {
+      input.addEventListener('change', () => history.replaceState(null, '', `#${input.value}`))
+    }
+  })()
+</script>
+
+<style>
+  .dl {
+    position: relative;
+    width: min(820px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 96px 0 120px;
+  }
+  h1 {
+    font-size: clamp(3rem, 8vw, 5.5rem);
+    margin-bottom: 20px;
+  }
+  .lede {
+    margin: 0;
+  }
+  .windows-note {
+    display: none;
+    margin: 20px 0 0;
+    padding: 12px 16px;
+    border: 1px solid rgb(230 180 106 / 30%);
+    border-radius: 12px;
+    background: rgb(230 180 106 / 8%);
+  }
+  :global([data-windows]) .windows-note {
+    display: block;
+  }
+
+  /* Tabs: radio buttons, so they work without JavaScript. */
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin: 48px 0 0;
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: rgb(255 255 255 / 2%);
+  }
+  .tabs label {
+    display: grid;
+    padding: 12px 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .tabs label:hover {
+    background: rgb(255 255 255 / 4%);
+  }
+  .tabs input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .tabs span {
+    font-weight: 500;
+  }
+  .tabs small {
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+  .tabs label:has(input:checked) {
+    background: linear-gradient(180deg, rgb(230 180 106 / 18%), rgb(230 180 106 / 6%));
+    box-shadow: inset 0 0 0 1px rgb(230 180 106 / 40%);
+  }
+  .tabs label:has(input:checked) small {
+    color: var(--honey);
+  }
+  .tabs label:has(input:focus-visible) {
+    outline: 2px solid var(--honey);
+    outline-offset: 2px;
+  }
+  .panel {
+    display: none;
+  }
+  .dl:has(#os-mac:checked) .panel-mac,
+    .dl:has(#os-linux:checked) .panel-linux {
+    display: block;
+    animation: fade 0.4s ease-out;
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+
+  /* Numbered steps on a line. */
+  .steps {
+    counter-reset: step;
+    margin: 48px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .steps > li {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 44px 64px;
+  }
+  .steps > li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: -4px;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgb(230 180 106 / 40%);
+    border-radius: 50%;
+    background: var(--bg);
+    color: var(--honey);
+    font: 0.95rem var(--mono);
+  }
+  .steps > li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 44px;
+    bottom: 4px;
+    width: 1px;
+    background: linear-gradient(rgb(230 180 106 / 40%), var(--line));
+  }
+  .steps h3 {
+    font-size: 1.5rem;
+  }
+  .steps p {
+    margin: 10px 0 0;
+    color: var(--muted);
+  }
+  .steps b,
+  .help b,
+  .try b {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .get {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    margin-top: 18px;
+  }
+  .get small,
+  .file,
+  .distros small {
+    display: block;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+  .file {
+    margin-top: 8px;
+  }
+  .get small {
+    font-family: var(--mono);
+  }
+  .checks {
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+    color: var(--muted);
+  }
+  .checks li {
+    padding-left: 28px;
+    position: relative;
+    margin-top: 6px;
+  }
+  .checks li::before {
+    content: '✓';
+    position: absolute;
+    left: 4px;
+    color: var(--honey);
+  }
+  .distros {
+    display: grid;
+    gap: 20px;
+    margin-top: 18px;
+  }
+  .distros small {
+    margin-top: 8px;
+  }
+
+  .try {
+    margin-top: 40px;
+    padding: 36px;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background:
+      radial-gradient(100% 120% at 100% 0%, rgb(230 180 106 / 12%), transparent 60%),
+      var(--card);
+  }
+  .try h2,
+  .help h2 {
+    font-size: clamp(2rem, 5vw, 3rem);
+  }
+  .try p:last-child {
+    margin: 16px 0 0;
+    color: var(--muted);
+  }
+
+  .help {
+    margin-top: 96px;
+  }
+  .help h2 {
+    margin-bottom: 24px;
+  }
+  details {
+    border-top: 1px solid var(--line);
+  }
+  details:last-of-type {
+    border-bottom: 1px solid var(--line);
+  }
+  summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 0;
+    cursor: pointer;
+    list-style: none;
+    font-weight: 500;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary::after {
+    content: '+';
+    color: var(--honey);
+    font: 1.3rem/1 var(--mono);
+    transition: transform 0.2s;
+  }
+  details[open] summary::after {
+    transform: rotate(45deg);
+  }
+  details p {
+    margin: 0 0 14px;
+    color: var(--muted);
+  }
+  details > :last-child {
+    margin-bottom: 24px;
+  }
+  .more {
+    margin-top: 32px;
+    color: var(--muted);
+  }
+
+  @media (max-width: 640px) {
+    .tabs {
+      grid-template-columns: 1fr;
+    }
+    .steps > li {
+      padding-left: 52px;
+    }
+    .try {
+      padding: 24px;
+    }
+  }
+</style>

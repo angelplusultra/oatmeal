@@ -1,0 +1,48 @@
+name: Website
+
+on:
+  push:
+    branches: [main]
+    # The site imports the icon and screenshots from assets/ and docs/.
+    paths: [website/**, assets/**, docs/screenshots/**, .github/workflows/website.yml]
+  # The download page links the newest release's files, looked up at build time.
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  # Runs after every Release run, even a failed one: the page lists whatever GitHub has, so a rebuild is harmless.
+  deploy:
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: website/dist
+      - id: deploy
+        uses: actions/deploy-pages@v4

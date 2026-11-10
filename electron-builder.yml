@@ -31,6 +31,9 @@ extraResources:
     to: moonshine/${platform}-${arch}
   - from: resources/tray
     to: tray
+  # The AppImage copies this into ~/.local/share/icons for the launcher entry it writes (login-items.ts).
+  - from: build/icon.png
+    to: icon.png
 
 npmRebuild: false
 

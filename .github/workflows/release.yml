@@ -93,3 +93,30 @@ jobs:
           # Tags with a pre-release suffix (v1.0.0-beta.1) publish as pre-releases.
           pre=$([[ "$GITHUB_REF_NAME" == *-* ]] && echo --prerelease || true)
           gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --generate-notes $pre
+
+  # Updates the oatmeal-notes-bin AUR package. Skipped until the AUR_SSH_PRIVATE_KEY secret exists: an SSH key added
+  # to the AUR account that maintains the package (packaging/aur/PKGBUILD).
+  aur:
+    needs: publish
+    runs-on: ubuntu-24.04
+    container: archlinux:base-devel
+    env:
+      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+    steps:
+      - if: env.AUR_SSH_PRIVATE_KEY == ''
+        run: echo "::notice::AUR_SSH_PRIVATE_KEY isn't set, so the AUR package wasn't updated."
+      - if: env.AUR_SSH_PRIVATE_KEY != ''
+        uses: actions/checkout@v5
+      - name: Publish to the AUR
+        if: env.AUR_SSH_PRIVATE_KEY != ''
+        run: |
+          pacman -Syu --noconfirm --needed git openssh
+          # makepkg refuses to run as root.
+          useradd -m builder
+          install -d -m 700 -o builder /home/builder/.ssh
+          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > /home/builder/.ssh/id_ed25519
+          # The AUR's host key, checked against the fingerprint on aur.archlinux.org.
+          echo 'aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN' > /home/builder/.ssh/known_hosts
+          chown -R builder /home/builder/.ssh .
+          chmod 600 /home/builder/.ssh/id_ed25519
+          su builder -c "packaging/aur/publish.sh '${GITHUB_REF_NAME#v}' --push"

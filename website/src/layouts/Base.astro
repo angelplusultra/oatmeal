@@ -1,0 +1,286 @@
+---
+import '@fontsource-variable/newsreader/opsz.css'
+import '@fontsource-variable/newsreader/opsz-italic.css'
+import '@fontsource-variable/geist'
+import '@fontsource-variable/geist-mono'
+import icon from '../../../assets/icon.svg'
+import { releasesUrl, repoUrl } from '../lib/release'
+
+interface Props {
+  title: string
+  description: string
+}
+const { title, description } = Astro.props
+const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#14110e" />
+    <link rel="icon" type="image/svg+xml" href={icon.src} />
+  </head>
+  <body>
+    <nav class="nav">
+      <a class="brand" href={`${base}/`}><img src={icon.src} width="28" height="28" alt="" /> Oatmeal</a>
+      <div class="nav-links">
+        <a href={`${base}/#how`}>How it works</a>
+        <a href={`${base}/#features`}>Features</a>
+        <a href={`${base}/#privacy`}>Privacy</a>
+        <a href={repoUrl}>GitHub</a>
+      </div>
+      <a class="btn btn-sm btn-honey" href={`${base}/download/`}>Download</a>
+    </nav>
+
+    <slot />
+
+    <footer>
+      <span class="footer-brand"><img src={icon.src} width="20" height="20" alt="" /> Oatmeal</span>
+      <span class="footer-links">
+        <a href={repoUrl}>GitHub</a>
+        <a href={`${repoUrl}/issues`}>Report a bug</a>
+        <a href={releasesUrl}>All releases</a>
+      </span>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --bg: #14110e;
+    --card: #1c1814;
+    --line: rgb(255 235 205 / 9%);
+    --text: #f3ece0;
+    --muted: #a79a89;
+    --honey: #e6b46a;
+    --honey-deep: #b5772f;
+    --serif: 'Newsreader Variable', Georgia, serif;
+    --sans: 'Geist Variable', system-ui, sans-serif;
+    --mono: 'Geist Mono Variable', ui-monospace, monospace;
+    color-scheme: dark;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.6 var(--sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+  }
+  /* Film grain over everything. */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  a {
+    color: inherit;
+  }
+  :focus-visible {
+    outline: 2px solid var(--honey);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--serif);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 1.6rem;
+  }
+  em {
+    font-style: italic;
+    background: linear-gradient(100deg, #f8dcaa, var(--honey) 45%, #d08a3c);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    padding-right: 0.06em;
+  }
+  code {
+    font-family: var(--mono);
+    font-size: 0.85em;
+  }
+  .eyebrow {
+    margin: 0 0 16px;
+    font: 500 0.8rem var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--honey);
+  }
+  .lede {
+    max-width: 36rem;
+    font-size: clamp(1.05rem, 2vw, 1.25rem);
+    color: var(--muted);
+  }
+  .glow {
+    position: absolute;
+    inset: -200px 0 auto;
+    height: 900px;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(40% 50% at 50% 30%, rgb(230 160 80 / 28%), transparent 70%),
+      radial-gradient(30% 35% at 25% 55%, rgb(180 90 40 / 18%), transparent 70%),
+      radial-gradient(30% 35% at 75% 55%, rgb(240 200 130 / 12%), transparent 70%);
+    filter: blur(20px);
+    animation: drift 14s ease-in-out infinite alternate;
+  }
+  @keyframes drift {
+    to {
+      transform: translateY(40px) scale(1.08);
+    }
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    transition:
+      transform 0.2s,
+      box-shadow 0.2s,
+      background 0.2s;
+  }
+  .btn svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .btn-sm {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    border-radius: 10px;
+  }
+  .btn-honey {
+    background: linear-gradient(180deg, #f0c47f, var(--honey-deep));
+    color: #1b1209;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 40%),
+      0 8px 32px -8px rgb(230 160 80 / 60%);
+  }
+  .btn-honey:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 40%),
+      0 14px 44px -8px rgb(230 160 80 / 80%);
+  }
+  .btn-ghost {
+    border: 1px solid var(--line);
+    background: rgb(255 255 255 / 3%);
+  }
+  .btn-ghost:hover {
+    background: rgb(255 255 255 / 7%);
+    transform: translateY(-2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+</style>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 12px;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    width: min(1100px, calc(100% - 32px));
+    margin: 12px auto 0;
+    padding: 8px 8px 8px 16px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: rgb(20 17 14 / 65%);
+    backdrop-filter: blur(16px) saturate(1.4);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font: 500 1.25rem var(--serif);
+    text-decoration: none;
+  }
+  .nav-links {
+    display: flex;
+    gap: 24px;
+    margin-left: auto;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .nav-links a {
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover {
+    color: var(--text);
+  }
+  footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+    width: min(1100px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 32px 0;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  footer span {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .footer-brand {
+    gap: 8px;
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    color: var(--text);
+  }
+  footer a {
+    text-decoration: none;
+  }
+  footer a:hover {
+    color: var(--text);
+  }
+  @media (max-width: 900px) {
+    .nav-links {
+      display: none;
+    }
+    .brand {
+      margin-right: auto;
+    }
+  }
+</style>

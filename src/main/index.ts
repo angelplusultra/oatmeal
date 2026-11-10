@@ -9,7 +9,7 @@ import { Store } from './db'
 import { MeetingDetector } from './detector'
 import { applyUserDataOverride, createScreenshotter, fakeAudioFromEnv } from './dev'
 import { registerIpc } from './ipc'
-import { openedAtLogin, refreshOpenAtLogin } from './login-items'
+import { openedAtLogin, refreshLauncherEntry, refreshOpenAtLogin } from './login-items'
 import { OmarchyThemeWatcher } from './omarchy'
 import { Orchestrator } from './orchestrator'
 import { getPaths } from './paths'
@@ -189,6 +189,7 @@ async function main() {
   // Launched at login: stay in the menu bar / tray. Until setup is done, show it so the user can finish.
   const startHidden = !!process.env.OATMEAL_START_HIDDEN || (openedAtLogin() && settings.onboarded)
   refreshOpenAtLogin()
+  refreshLauncherEntry()
   if (!startHidden) windows.showMain()
   if (settings.detectionEnabled) detector.start()
   activeUpdater.setEnabled(settings.autoUpdate)
