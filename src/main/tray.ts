@@ -1,10 +1,11 @@
+import { execFile } from 'node:child_process'
 import path from 'node:path'
 import type { RecordingState } from '@shared/types'
 import { app, Menu, nativeImage, nativeTheme, Tray } from 'electron'
 
 /** Menu bar icon: shows whether Oatmeal is recording and offers start/stop. */
 export class AppTray {
-  private readonly tray: Tray
+  private tray: Tray | null = null
   private readonly template: Electron.NativeImage
   private readonly recordingIcon: Electron.NativeImage
   private timer: NodeJS.Timeout | null = null
@@ -19,13 +20,21 @@ export class AppTray {
     this.template = nativeImage.createFromPath(path.join(iconDir, 'trayTemplate.png'))
     this.template.setTemplateImage(true)
     this.recordingIcon = nativeImage.createFromPath(path.join(iconDir, 'recording.png'))
-    this.tray = new Tray(this.idleIcon())
-    this.tray.setToolTip('Oatmeal')
-    this.update({ kind: 'idle' })
     // On Linux the desktop's color scheme arrives after launch (and changes with Omarchy themes).
     nativeTheme.on('updated', () => {
-      if (!this.recording) this.tray.setImage(this.idleIcon())
+      if (!this.recording) this.tray?.setImage(this.idleIcon())
     })
+    // Electron registers a Linux tray icon once and never retries, so at login wait for the bar's tray
+    // (StatusNotifierWatcher) to appear. Without gdbus, or with no tray host after 60 s, create it anyway.
+    if (process.platform === 'linux')
+      execFile('gdbus', ['wait', '--session', '--timeout', '60', 'org.kde.StatusNotifierWatcher'], () => this.create())
+    else this.create()
+  }
+
+  private create() {
+    this.tray = new Tray(this.idleIcon())
+    this.tray.setToolTip('Oatmeal')
+    this.update(this.state)
   }
 
   /** Only macOS recolors template images. Elsewhere, paint the black glyph to suit the bar. */
@@ -47,7 +56,9 @@ export class AppTray {
     this.timer = null
     const recording = state.kind === 'recording'
     this.recording = recording
-    this.tray.setImage(recording ? this.recordingIcon : this.idleIcon())
+    const tray = this.tray
+    if (!tray) return
+    tray.setImage(recording ? this.recordingIcon : this.idleIcon())
     const render = () => {
       let status = 'Not recording'
       if (state.kind === 'recording') {
@@ -56,7 +67,7 @@ export class AppTray {
         status = `Recording${state.sourceApp ? ` ${state.sourceApp}` : ''} · ${clock}`
       } else if (state.kind === 'starting') status = 'Starting…'
       else if (state.kind === 'stopping') status = 'Finishing transcript…'
-      this.tray.setContextMenu(
+      tray.setContextMenu(
         Menu.buildFromTemplate([
           { label: status, enabled: false },
           { type: 'separator' },
@@ -86,7 +97,7 @@ export class AppTray {
 
   destroy() {
     if (this.timer) clearInterval(this.timer)
-    this.tray.destroy()
+    this.tray?.destroy()
   }
 }
 
