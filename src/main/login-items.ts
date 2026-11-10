@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { autostartDesktopEntry, HIDDEN_FLAG } from '@shared/autostart'
 import { app } from 'electron'
+import { appImagePath } from './paths'
 
 /**
  * Open at login: Electron's login items on macOS, an XDG autostart entry on Linux. Packaged builds only: in dev
@@ -31,8 +32,8 @@ export function setOpenAtLogin(open: boolean): boolean | null {
   else if (!open) fs.rmSync(autostartFile(), { force: true })
   else {
     fs.mkdirSync(path.dirname(autostartFile()), { recursive: true })
-    // An AppImage runs from a temporary mount; APPIMAGE is the file the user launched.
-    fs.writeFileSync(autostartFile(), autostartDesktopEntry(process.env.APPIMAGE || process.execPath))
+    // An AppImage runs from a temporary mount, so point at the .AppImage file itself.
+    fs.writeFileSync(autostartFile(), autostartDesktopEntry(appImagePath() ?? process.execPath))
   }
   return getOpenAtLogin()
 }
