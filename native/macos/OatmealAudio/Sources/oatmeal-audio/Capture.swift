@@ -40,18 +40,27 @@ final class PCMConverter {
 
 /// Captures everything the Mac plays (except excluded processes) through a Core Audio process tap
 /// wrapped in a private aggregate device. Needs only the "System Audio Recording" permission.
+///
+/// The aggregate's clock is the output device, so its input streams are that device's own inputs (a
+/// Bluetooth headset's mic) followed by the tap. We read only the tap, keep the headset's mic closed (opening
+/// it drops the headset into its low-quality call profile and changes the sample rate mid-call), and report
+/// any format change so the session can rebuild us with the new format.
 final class SystemAudioCapture {
     private let excludePIDs: [pid_t]
     private let onSamples: ([Int16]) -> Void
+    private let onFormatChange: () -> Void
     private let queue = DispatchQueue(label: "oatmeal.system-tap", qos: .userInitiated)
     private var tapID = AudioObjectID(kAudioObjectUnknown)
     private var aggregateID = AudioObjectID(kAudioObjectUnknown)
     private var procID: AudioDeviceIOProcID?
-    private var converter: PCMConverter?
+    private var asbd = AudioStreamBasicDescription()
+    private var deviceInputs = 0
+    private var listener: AudioObjectPropertyListenerBlock?
 
-    init(excludePIDs: [pid_t], onSamples: @escaping ([Int16]) -> Void) {
+    init(excludePIDs: [pid_t], onSamples: @escaping ([Int16]) -> Void, onFormatChange: @escaping () -> Void) {
         self.excludePIDs = excludePIDs
         self.onSamples = onSamples
+        self.onFormatChange = onFormatChange
     }
 
     func start() throws {
@@ -66,20 +75,11 @@ final class SystemAudioCapture {
         try check(AudioHardwareCreateProcessTap(description, &tap), "create process tap")
         tapID = tap
 
-        var addr = address(kAudioTapPropertyFormat)
-        var asbd = AudioStreamBasicDescription()
-        var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
-        try check(AudioObjectGetPropertyData(tapID, &addr, 0, nil, &size, &asbd), "read tap format")
-        guard let format = AVAudioFormat(streamDescription: &asbd) else {
-            throw CoreAudioError(status: -1, action: "interpret tap format")
-        }
-        let converter = try PCMConverter(from: format)
-        self.converter = converter
-
         let outputDevice = try defaultOutputDevice()
         guard let outputUID = readString(outputDevice, kAudioDevicePropertyDeviceUID) else {
             throw CoreAudioError(status: -1, action: "read output device UID")
         }
+        deviceInputs = readObjectList(outputDevice, kAudioDevicePropertyStreams, scope: kAudioObjectPropertyScopeInput).count
         let aggregate: [String: Any] = [
             kAudioAggregateDeviceNameKey: "Oatmeal Tap",
             kAudioAggregateDeviceUIDKey: UUID().uuidString,
@@ -94,19 +94,86 @@ final class SystemAudioCapture {
         try check(AudioHardwareCreateAggregateDevice(aggregate as CFDictionary, &aggregateDevice), "create aggregate device")
         aggregateID = aggregateDevice
 
+        asbd = tapStreamFormat()
+        guard let format = AVAudioFormat(streamDescription: &asbd) else {
+            throw CoreAudioError(status: -1, action: "interpret tap format")
+        }
+        let converter = try PCMConverter(from: format)
+
         try check(
             AudioDeviceCreateIOProcIDWithBlock(&procID, aggregateID, queue) { [weak self] _, inputData, _, _, _ in
-                guard let self,
-                      let buffer = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: inputData, deallocator: nil)
-                else { return }
-                let samples = converter.convert(buffer)
+                // The tap is mono, so it is exactly one buffer: the last one.
+                let buffers = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: inputData))
+                guard let self, let tapBuffer = buffers.last, tapBuffer.mNumberChannels == format.channelCount else { return }
+                var list = AudioBufferList(mNumberBuffers: 1, mBuffers: tapBuffer)
+                let samples: [Int16] = withUnsafePointer(to: &list) { ptr in
+                    guard let buffer = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: ptr, deallocator: nil) else { return [] }
+                    return converter.convert(buffer)
+                }
                 if !samples.isEmpty { self.onSamples(samples) }
             },
             "create IO proc")
+        disableInputStreams(count: deviceInputs)
+
+        let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in self?.checkFormat() }
+        self.listener = listener
+        var tapFormatAddr = address(kAudioTapPropertyFormat)
+        AudioObjectAddPropertyListenerBlock(tapID, &tapFormatAddr, DispatchQueue.main, listener)
+        var rateAddr = address(kAudioDevicePropertyNominalSampleRate)
+        AudioObjectAddPropertyListenerBlock(aggregateID, &rateAddr, DispatchQueue.main, listener)
+
         try check(AudioDeviceStart(aggregateID, procID), "start aggregate device")
     }
 
+    /// The format the IO proc gets the tap in: its stream's format in the aggregate (the input stream after the
+    /// output device's own), falling back to the tap's own format while that stream isn't there.
+    private func tapStreamFormat() -> AudioStreamBasicDescription {
+        let tapFormat = readScalar(tapID, kAudioTapPropertyFormat, as: AudioStreamBasicDescription.self, default: AudioStreamBasicDescription())
+        let streams = readObjectList(aggregateID, kAudioDevicePropertyStreams, scope: kAudioObjectPropertyScopeInput)
+        guard streams.count > deviceInputs, let stream = streams.last else { return tapFormat }
+        return readScalar(stream, kAudioStreamPropertyVirtualFormat, as: AudioStreamBasicDescription.self, default: tapFormat)
+    }
+
+    private func checkFormat() {
+        let now = tapStreamFormat()
+        if now.mSampleRate != asbd.mSampleRate || now.mChannelsPerFrame != asbd.mChannelsPerFrame
+            || now.mFormatFlags != asbd.mFormatFlags || now.mBitsPerChannel != asbd.mBitsPerChannel
+        {
+            Events.stderr(["type": "format-changed", "channel": "system", "from": asbd.mSampleRate, "to": now.mSampleRate])
+            onFormatChange()
+        }
+    }
+
+    /// Turns off the aggregate's first `count` input streams (the output device's own inputs, e.g. a headset
+    /// mic) for our IO proc, so Core Audio doesn't open them. Best effort: reading the last buffer is what
+    /// keeps the transcript right if this fails.
+    private func disableInputStreams(count: Int) {
+        guard count > 0, let procID else { return }
+        var addr = address(kAudioDevicePropertyIOProcStreamUsage, scope: kAudioObjectPropertyScopeInput)
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(aggregateID, &addr, 0, nil, &size) == noErr, size >= 16 else { return }
+        // AudioHardwareIOProcStreamUsage: { void *mIOProc; UInt32 mNumberStreams; UInt32 mStreamIsOn[]; }
+        let usage = UnsafeMutableRawPointer.allocate(byteCount: Int(size), alignment: 8)
+        defer { usage.deallocate() }
+        usage.initializeMemory(as: UInt8.self, repeating: 0, count: Int(size))
+        usage.storeBytes(of: unsafeBitCast(procID, to: UnsafeMutableRawPointer.self), as: UnsafeMutableRawPointer.self)
+        guard AudioObjectGetPropertyData(aggregateID, &addr, 0, nil, &size, usage) == noErr else { return }
+        let streams = Int(usage.load(fromByteOffset: 8, as: UInt32.self))
+        for i in 0..<max(0, min(count, streams - 1)) {
+            usage.storeBytes(of: UInt32(0), toByteOffset: 12 + i * 4, as: UInt32.self)
+        }
+        let status = AudioObjectSetPropertyData(aggregateID, &addr, 0, nil, size, usage)
+        if status != noErr { Events.stderr(["type": "warning", "code": "stream-usage", "status": Int(status)]) }
+    }
+
     func stop() {
+        if let listener {
+            var tapFormatAddr = address(kAudioTapPropertyFormat)
+            AudioObjectRemovePropertyListenerBlock(tapID, &tapFormatAddr, DispatchQueue.main, listener)
+            var rateAddr = address(kAudioDevicePropertyNominalSampleRate)
+            AudioObjectRemovePropertyListenerBlock(aggregateID, &rateAddr, DispatchQueue.main, listener)
+            self.listener = nil
+        }
         if aggregateID != kAudioObjectUnknown {
             AudioDeviceStop(aggregateID, procID)
             if let procID { AudioDeviceDestroyIOProcID(aggregateID, procID) }
@@ -152,14 +219,20 @@ final class MicCapture {
         }
     }
 
-    private func restart() {
-        Events.stderr(["type": "device-changed", "channel": "mic"])
+    /// Mid-switch (e.g. a Bluetooth headset changing profile) the new device can briefly report no format, so
+    /// a failed restart is retried rather than leaving the mic dead for the rest of the call.
+    private func restart(attempt: Int = 0) {
+        if attempt == 0 { Events.stderr(["type": "device-changed", "channel": "mic"]) }
         stop()
         engine = AVAudioEngine()
         do {
             try start()
         } catch {
-            Events.stderr(["type": "error", "channel": "mic", "message": "\(error)"])
+            if attempt < 5 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.restart(attempt: attempt + 1) }
+            } else {
+                Events.stderr(["type": "error", "channel": "mic", "message": "\(error)"])
+            }
         }
     }
 
@@ -181,6 +254,7 @@ final class CaptureSession {
     private var outputListener: AudioObjectPropertyListenerBlock?
     private let lock = NSLock()
     private var stopped = false
+    private var restartScheduled = false // main queue only
 
     init(mic: Bool, system: Bool, excludePIDs: [pid_t]) {
         wantMic = mic
@@ -210,30 +284,49 @@ final class CaptureSession {
 
     @discardableResult
     private func startSystem() -> Bool {
-        let capture = SystemAudioCapture(excludePIDs: excludePIDs) { [writer] in writer.append(channel: 1, samples: $0) }
+        let capture = SystemAudioCapture(
+            excludePIDs: excludePIDs,
+            onSamples: { [writer] in writer.append(channel: 1, samples: $0) },
+            onFormatChange: { [weak self] in self?.scheduleSystemRestart() })
         do {
             try capture.start()
             system = capture
             return true
         } catch {
+            capture.stop()
             Events.stderr(["type": "error", "channel": "system", "message": "\(error)"])
             return false
+        }
+    }
+
+    /// Rebuilds the tap after a burst of device notifications settles. Main queue only.
+    private func scheduleSystemRestart() {
+        guard !restartScheduled else { return }
+        restartScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.restartScheduled = false
+            self?.restartSystem()
+        }
+    }
+
+    private func restartSystem(attempt: Int = 0) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !stopped else { return }
+        system?.stop()
+        system = nil
+        if !startSystem(), attempt < 5 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.restartSystem(attempt: attempt + 1) }
         }
     }
 
     /// The tap's aggregate device is clocked by the output device, so rebuild it when the user switches
     /// output (e.g. connects headphones).
     private func watchOutputDevice() {
-        var addr = address(kAudioHardwarePropertyDefaultSystemOutputDevice)
+        var addr = address(kAudioHardwarePropertyDefaultOutputDevice)
         let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
-            guard let self else { return }
-            self.lock.lock()
-            defer { self.lock.unlock() }
-            guard !self.stopped else { return }
             Events.stderr(["type": "device-changed", "channel": "system"])
-            self.system?.stop()
-            self.system = nil
-            self.startSystem()
+            self?.scheduleSystemRestart()
         }
         outputListener = listener
         AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &addr, DispatchQueue.main, listener)
@@ -245,7 +338,7 @@ final class CaptureSession {
         guard !stopped else { return }
         stopped = true
         if let outputListener {
-            var addr = address(kAudioHardwarePropertyDefaultSystemOutputDevice)
+            var addr = address(kAudioHardwarePropertyDefaultOutputDevice)
             AudioObjectRemovePropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &addr, DispatchQueue.main, outputListener)
         }
         mic?.stop()
