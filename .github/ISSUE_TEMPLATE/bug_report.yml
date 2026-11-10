@@ -1,0 +1,61 @@
+name: Bug report
+description: Something in Oatmeal doesn't work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please don't paste transcripts or notes from real meetings unless you're sure they're fine to share publicly.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Join a call in …
+        2. Click …
+        3. See …
+  - type: input
+    id: version
+    attributes:
+      label: Oatmeal version
+      description: Shown in Settings → Updates.
+      placeholder: 0.1.1
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS
+        - Linux (Omarchy / Hyprland)
+        - Linux (other)
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS version and call app
+      placeholder: macOS 15.4, Zoom 6.4 / Arch, Google Meet in Chrome
+  - type: dropdown
+    id: model
+    attributes:
+      label: Notes model
+      options:
+        - Built-in (local Gemma)
+        - Own GGUF file
+        - OpenAI-compatible endpoint
+        - Not relevant
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Terminal output (if you launched Oatmeal from one) or screenshots that show the problem.
+      render: text

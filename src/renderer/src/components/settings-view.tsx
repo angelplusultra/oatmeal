@@ -1,10 +1,12 @@
 import { ASR_MODELS, asrModel, LLM_MODELS, llmModel } from '@shared/models'
 import type { ModelKind, ModelStatus, PermissionState, Settings, UpdateStatus } from '@shared/types'
 import {
+  BugIcon,
   CheckCircle2Icon,
   DownloadIcon,
   FileIcon,
   FolderOpenIcon,
+  LightbulbIcon,
   Loader2Icon,
   RefreshCwIcon,
   RotateCwIcon,
@@ -544,6 +546,23 @@ export function SettingsView({ onRunSetup }: { onRunSetup: () => void }) {
           <CardContent>
             <Button variant="outline" onClick={() => void window.oatmeal.openDataFolder()}>
               <FolderOpenIcon /> Open data folder
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Feedback</CardTitle>
+            <CardDescription>
+              Opens a new issue on GitHub. Nothing is sent from Oatmeal; you choose what to share.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => void window.oatmeal.openLink('bug')}>
+              <BugIcon /> Report a bug
+            </Button>
+            <Button variant="outline" onClick={() => void window.oatmeal.openLink('feature')}>
+              <LightbulbIcon /> Request a feature
             </Button>
           </CardContent>
         </Card>

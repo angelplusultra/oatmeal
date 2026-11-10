@@ -61,6 +61,8 @@ export interface OatmealInvoke {
   requestPermission(kind: 'microphone' | 'systemAudio'): Promise<PermissionStatus>
   openPermissionSettings(kind: 'microphone' | 'systemAudio'): Promise<void>
   openDataFolder(): Promise<void>
+  /** Opens the GitHub repo, or a new bug report / feature request, in the browser. */
+  openLink(target: 'repo' | 'bug' | 'feature'): Promise<void>
   /** Whether Oatmeal opens at login, or null where it can't (Linux, and unpackaged dev builds). */
   getOpenAtLogin(): Promise<boolean | null>
   setOpenAtLogin(open: boolean): Promise<boolean | null>
@@ -100,6 +102,7 @@ export const INVOKE_METHODS = [
   'requestPermission',
   'openPermissionSettings',
   'openDataFolder',
+  'openLink',
   'getOpenAtLogin',
   'setOpenAtLogin',
   'getPanel',

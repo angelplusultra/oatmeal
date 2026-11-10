@@ -25,6 +25,13 @@ interface IpcDeps {
   omarchyTheme: OmarchyThemeWatcher
 }
 
+const REPO = 'https://github.com/angelplusultra/oatmeal'
+const LINKS = {
+  repo: REPO,
+  bug: `${REPO}/issues/new?template=bug_report.yml`,
+  feature: `${REPO}/issues/new?template=feature_request.yml`,
+}
+
 const slug = (s: string) =>
   s
     .replace(/[^\p{L}\p{N}]+/gu, '-')
@@ -171,6 +178,9 @@ export function registerIpc(deps: IpcDeps) {
     },
     async openDataFolder() {
       await shell.openPath(deps.paths.userData)
+    },
+    async openLink(target) {
+      await shell.openExternal(LINKS[target])
     },
     async getOpenAtLogin() {
       return getOpenAtLogin()
