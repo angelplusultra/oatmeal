@@ -17,3 +17,12 @@ export function getPaths() {
 }
 
 export type Paths = ReturnType<typeof getPaths>
+
+/**
+ * The AppImage file Oatmeal runs from, or undefined. APPIMAGE alone isn't proof: it's inherited when Oatmeal is
+ * started from inside another AppImage (a terminal in one, say). Ours mounts at APPDIR, around our executable.
+ */
+export function appImagePath(): string | undefined {
+  const { APPIMAGE, APPDIR } = process.env
+  return APPIMAGE && APPDIR && process.execPath.startsWith(APPDIR + path.sep) ? APPIMAGE : undefined
+}
