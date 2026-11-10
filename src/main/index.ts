@@ -196,6 +196,9 @@ async function main() {
   if (process.env.OATMEAL_START_VIEW === 'settings') {
     windows.navigate({ view: 'settings' })
     setTimeout(() => void screenshot('settings'), 2500)
+  } else if (process.env.OATMEAL_START_VIEW) {
+    windows.navigate({ meetingId: process.env.OATMEAL_START_VIEW })
+    setTimeout(() => void screenshot('meeting'), 2500)
   }
   void runDevSetup(orchestrator)
 

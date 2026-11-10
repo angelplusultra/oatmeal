@@ -36,6 +36,18 @@ On first launch, a short setup asks for audio access (macOS) and downloads the m
 - **Notes.** A summary, action items (with owners and due dates, and check-offs), decisions, key points and open questions. Every decision and action item links back to the moment it was said.
 - **Your choice of notes model.** Gemma 4 E2B, E4B (the default) or 26B A4B, built in with llama.cpp. Oatmeal finds a Gemma GGUF already on disk from LM Studio, llama.cpp or Hugging Face, or you can pick any GGUF file or point it at an OpenAI-compatible server you run (Ollama, LM Studio, llama-server).
 - **Your data.** Transcripts are searchable, viewable and exportable as .txt, .md or .json. Notes copy or export as Markdown.
+- **Omarchy themes.** On Omarchy, Oatmeal takes its colors and corner rounding from your desktop theme, and follows `omarchy theme set` live.
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/omarchy-tokyo-night.png" alt="Oatmeal in the Tokyo Night theme" width="380"></td>
+    <td><img src="docs/screenshots/omarchy-catppuccin-latte.png" alt="Oatmeal in the Catppuccin Latte theme" width="380"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/omarchy-matte-black.png" alt="Oatmeal in the Matte Black theme" width="380"></td>
+    <td><img src="docs/screenshots/omarchy-rose-pine.png" alt="Oatmeal in the Rosé Pine theme" width="380"></td>
+  </tr>
+</table>
 
 ![A transcript with You, Priya and Marcus, each line timestamped](docs/screenshots/transcript.png)
 

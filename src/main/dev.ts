@@ -11,7 +11,7 @@
  *   OATMEAL_DEMO_PROMPT=1|accept                            pretend Zoom started using the mic (and click Transcribe)
  *   OATMEAL_START_HIDDEN=1                                  don't open the main window at launch
  *   OATMEAL_DEMO_VIEW=1                                     click "View notes" on the notes-ready panel
- *   OATMEAL_START_VIEW=settings                             open Settings on launch
+ *   OATMEAL_START_VIEW=settings|<meetingId>                 open Settings, or a meeting, on launch
  *   OATMEAL_NO_OMARCHY_THEME=1                              keep Pantry's colors on Omarchy (e.g. for README screenshots)
  */
 
