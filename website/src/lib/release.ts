@@ -39,6 +39,8 @@ async function load(): Promise<Release | null> {
     if (process.env.GITHUB_TOKEN) headers.authorization = `Bearer ${process.env.GITHUB_TOKEN}`
     const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=10`, { headers })
     if (!res.ok) throw new Error(`GitHub API returned ${res.status}`)
+    // ponytail: newest release, betas included, which is right while every release is a beta. After the first stable
+    // release, prefer the newest stable one so a new beta isn't what every visitor downloads.
     const release = ((await res.json()) as GhRelease[]).find((r) => !r.draft)
     if (!release) return null
     const find = (suffix: string): Asset | undefined => {
