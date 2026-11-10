@@ -4,6 +4,7 @@
 //      official moonshine-voice wheel on PyPI (MIT). Checked against PyPI's published SHA-256.
 //   2. resources/bin/oatmeal-audio — the macOS audio helper, built from native/macos with SwiftPM (macOS only;
 //      Linux captures through PipeWire's pw-record and pactl instead).
+//   3. node_modules/electron/dist — Electron's binary, which electron-vite needs but npm no longer installs.
 // Idempotent: skips work whose outputs are already up to date.
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -115,5 +116,9 @@ function buildHelper() {
   log(`helper ready in ${path.relative(root, out)}`)
 }
 
+// Electron 45+ has no postinstall: requiring the package downloads the binary on first use, but
+// electron-vite reads node_modules/electron/path.txt directly and fails ("Electron uninstall") without it.
+// Its install.js exits early when the binary is already there.
+execFileSync(process.execPath, [path.join(root, 'node_modules/electron/install.js')], { stdio: 'inherit' })
 await fetchMoonshine()
 buildHelper()
