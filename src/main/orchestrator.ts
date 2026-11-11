@@ -288,7 +288,9 @@ export class Orchestrator {
         message: `Couldn't capture the ${channel}. Check Oatmeal's permissions in Settings. (${String(event.message ?? '')})`,
       })
     }
-    if (event.type === 'warning') console.warn('[capture]', event)
+    // Rare (start, device switches, format changes), and the first place to look when a transcript goes wrong.
+    if (event.type === 'warning' || event.type === 'error') console.warn('[capture]', event)
+    else console.log('[capture]', event)
   }
 
   // ------------------------------------------------------------------ detection & panel

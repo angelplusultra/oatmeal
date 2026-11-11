@@ -51,10 +51,3 @@ func processObject(for pid: pid_t) -> AudioObjectID? {
         AudioObjectID(kAudioObjectSystemObject), &addr, UInt32(MemoryLayout<pid_t>.size), &qualifier, &size, &object)
     return status == noErr && object != kAudioObjectUnknown ? object : nil
 }
-
-/// The device apps play to (not the "sound effects" device, which the user can point elsewhere).
-func defaultOutputDevice() throws -> AudioObjectID {
-    let device = readScalar(AudioObjectID(kAudioObjectSystemObject), kAudioHardwarePropertyDefaultOutputDevice, as: AudioObjectID.self, default: kAudioObjectUnknown)
-    if device == kAudioObjectUnknown { throw CoreAudioError(status: -1, action: "find default output device") }
-    return device
-}
