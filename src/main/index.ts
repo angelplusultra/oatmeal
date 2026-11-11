@@ -7,7 +7,7 @@ import type { ModelKind, Settings } from '@shared/types'
 import { app, Menu, Notification } from 'electron'
 import { Store } from './db'
 import { MeetingDetector } from './detector'
-import { applyUserDataOverride, createScreenshotter, fakeAudioFromEnv } from './dev'
+import { applyUserDataOverride, createScreenshotter, devBuild, fakeAudioFromEnv } from './dev'
 import { registerIpc } from './ipc'
 import { openedAtLogin, refreshLauncherEntry, refreshOpenAtLogin } from './login-items'
 import { OmarchyThemeWatcher } from './omarchy'
@@ -24,6 +24,12 @@ app.setName('Oatmeal')
 applyUserDataOverride()
 
 if (!app.requestSingleInstanceLock()) {
+  // The lock belongs to the data directory, which the installed app shares. Without this, `npm run dev` just exits
+  // and the installed copy comes forward, which looks like the dev build started.
+  if (!app.isPackaged)
+    console.error(
+      '[dev] Another Oatmeal is already running (the installed app, or another dev copy). Quit it from its menu-bar icon, then try again.',
+    )
   app.quit()
 } else {
   void app.whenReady().then(main)
@@ -31,11 +37,12 @@ if (!app.requestSingleInstanceLock()) {
 
 async function main() {
   const paths = getPaths()
+  const dev = devBuild()
   // Linux: no File/Edit/View menu bar. Text-field shortcuts (copy, paste, undo) work without it.
   if (process.platform !== 'darwin') Menu.setApplicationMenu(null)
-  // Packaged builds get the icon from the bundle; in dev, show it in the Dock too.
+  // Packaged builds get the icon from the bundle; in dev, show it in the Dock too, with a DEV banner.
   if (!app.isPackaged && process.platform === 'darwin')
-    app.dock?.setIcon(path.join(app.getAppPath(), 'build', 'icon.png'))
+    app.dock?.setIcon(path.join(app.getAppPath(), 'build', dev ? 'icon-dev.png' : 'icon.png'))
   const store = new Store(paths.db)
   const defaults = defaultSettings({ cpuCount: os.cpus().length, totalMemGB: os.totalmem() / 2 ** 30 })
   let settings = store.getSettings(defaults)
@@ -48,7 +55,7 @@ async function main() {
     store.saveSettings(settings)
   }
 
-  const windows = new WindowManager(outDir)
+  const windows = new WindowManager(outDir, dev)
   const omarchyTheme = new OmarchyThemeWatcher((theme) => {
     windows.omarchyTheme = theme
     windows.broadcast('omarchy-theme', theme)
@@ -131,7 +138,7 @@ async function main() {
     omarchyTheme,
   })
 
-  const tray = new AppTray(paths.trayIcons, {
+  const tray = new AppTray(paths.trayIcons, dev, {
     start: () => void orchestrator.start(null),
     stop: () => void orchestrator.stop('user'),
     open: () => windows.showMain(),

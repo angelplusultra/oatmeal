@@ -2,6 +2,7 @@ import type { MeetingListItem, RecordingState } from '@shared/types'
 import { SearchIcon, SettingsIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { View } from '@/App'
+import { DevBadge } from '@/components/dev-badge'
 import { RecordButton } from '@/components/record-button'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useMeetings } from '@/hooks/use-oatmeal'
 import { formatDay, formatDuration, formatTime } from '@/lib/format'
-import { cn } from '@/lib/utils'
+import { cn, devBranch } from '@/lib/utils'
 
 function StatusBadge({ item }: { item: MeetingListItem }) {
   switch (item.status) {
@@ -56,8 +57,15 @@ export function Sidebar({
 
   return (
     <aside className={cn('flex w-72 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground', className)}>
-      {/* Space for the macOS traffic lights; draggable like a title bar. */}
-      <div className="h-3 shrink-0 mac:h-12 [-webkit-app-region:drag]" />
+      {/* Space for the macOS traffic lights; draggable like a title bar. Taller elsewhere when it holds the dev badge. */}
+      <div
+        className={cn(
+          'flex h-3 shrink-0 items-center justify-end px-3 mac:h-12 [-webkit-app-region:drag]',
+          devBranch !== null && 'h-10',
+        )}
+      >
+        <DevBadge />
+      </div>
       <div className="space-y-2 px-3 pb-3">
         <RecordButton recording={recording} className="w-full" />
         <div className="relative">

@@ -4,6 +4,7 @@ import type { OatmealEvents } from '@shared/api'
 import { eventChannel } from '@shared/api'
 import type { OmarchyTheme } from '@shared/omarchy'
 import { app, BrowserWindow, nativeTheme, screen } from 'electron'
+import type { DevBuild } from './dev'
 
 export class WindowManager {
   main: BrowserWindow | null = null
@@ -14,7 +15,10 @@ export class WindowManager {
   /** The Omarchy desktop theme, when there is one. */
   omarchyTheme: OmarchyTheme | null = null
 
-  constructor(private readonly outDir: string) {}
+  constructor(
+    private readonly outDir: string,
+    private readonly dev: DevBuild | null,
+  ) {}
 
   /** Pantry's page (or card, for the panel) color, so a window never flashes the wrong one before it paints. */
   private background(surface: 'page' | 'card' = 'page') {
@@ -33,10 +37,12 @@ export class WindowManager {
     }
   }
 
+  /** `?dev=<branch>` tells the renderer to show its dev badge (`devBranch` in lib/utils.ts). */
   private load(win: BrowserWindow, page: 'index' | 'prompt') {
+    const query: Record<string, string> = this.dev ? { dev: this.dev.branch ?? '' } : {}
     const devUrl = process.env.ELECTRON_RENDERER_URL
-    if (devUrl) void win.loadURL(`${devUrl}/${page}.html`)
-    else void win.loadFile(path.join(this.outDir, `../renderer/${page}.html`))
+    if (devUrl) void win.loadURL(`${devUrl}/${page}.html?${new URLSearchParams(query)}`)
+    else void win.loadFile(path.join(this.outDir, `../renderer/${page}.html`), { query })
   }
 
   showMain(): BrowserWindow {
