@@ -5,6 +5,7 @@
  *   OATMEAL_AUTOSTART=1                                     start recording as soon as the app is ready
  *   OATMEAL_LLM_MODEL_PATH=/path/model.gguf                 use an existing GGUF for notes
  *   OATMEAL_SCREENSHOT_DIR=/dir                             save screenshots of the main window at milestones
+ *                                                           (and hide the dev markers, since they end up in the README)
  *   OATMEAL_EXIT_AFTER_NOTES=1                              quit once the first notes are written
  *   OATMEAL_USER_DATA=/dir                                  use a separate data directory
  *   OATMEAL_SETUP=asr,llm                                   download models at launch
@@ -15,6 +16,7 @@
  *   OATMEAL_NO_OMARCHY_THEME=1                              keep Pantry's colors on Omarchy (e.g. for README screenshots)
  */
 
+import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import type { AudioSourceSpec } from '@shared/protocol'
@@ -30,6 +32,28 @@ export function fakeAudioFromEnv(): Extract<AudioSourceSpec, { kind: 'files' }> 
     if (key === 'speed') spec.speed = Number(value) || 1
   }
   return spec
+}
+
+/**
+ * Set when running from source (`npm run dev`, or `npx electron .`) rather than an installed build, so the tray,
+ * Dock icon and main window can say so. `branch` is the checked-out git branch, when there is one.
+ */
+export interface DevBuild {
+  branch: string | null
+}
+
+export function devBuild(): DevBuild | null {
+  if (app.isPackaged || process.env.OATMEAL_SCREENSHOT_DIR) return null
+  try {
+    const branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+      cwd: app.getAppPath(),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+    return { branch: branch || null }
+  } catch {
+    return { branch: null }
+  }
 }
 
 export function applyUserDataOverride() {

@@ -2,6 +2,7 @@ import type { OatmealEvents } from '@shared/api'
 import { PanelLeftIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { DevBadge } from '@/components/dev-badge'
 import { HomeView } from '@/components/home-view'
 import { MeetingView } from '@/components/meeting-view'
 import { Onboarding } from '@/components/onboarding'
@@ -83,6 +84,7 @@ export function App() {
             <Button variant="ghost" size="icon-sm" aria-label="Show meetings" onClick={() => setNavOpen(true)}>
               <PanelLeftIcon />
             </Button>
+            <DevBadge className="ml-auto" />
           </div>
           <div className="min-h-0 flex-1">
             {view.kind === 'home' && <HomeView onNavigate={go} recording={recording} />}

@@ -32,8 +32,8 @@ func readString(_ object: AudioObjectID, _ selector: AudioObjectPropertySelector
     return value.takeRetainedValue() as String
 }
 
-func readObjectList(_ object: AudioObjectID, _ selector: AudioObjectPropertySelector) -> [AudioObjectID] {
-    var addr = address(selector)
+func readObjectList(_ object: AudioObjectID, _ selector: AudioObjectPropertySelector, scope: AudioObjectPropertyScope = kAudioObjectPropertyScopeGlobal) -> [AudioObjectID] {
+    var addr = address(selector, scope: scope)
     var size: UInt32 = 0
     guard AudioObjectGetPropertyDataSize(object, &addr, 0, nil, &size) == noErr, size > 0 else { return [] }
     var list = [AudioObjectID](repeating: kAudioObjectUnknown, count: Int(size) / MemoryLayout<AudioObjectID>.size)
@@ -50,10 +50,4 @@ func processObject(for pid: pid_t) -> AudioObjectID? {
     let status = AudioObjectGetPropertyData(
         AudioObjectID(kAudioObjectSystemObject), &addr, UInt32(MemoryLayout<pid_t>.size), &qualifier, &size, &object)
     return status == noErr && object != kAudioObjectUnknown ? object : nil
-}
-
-func defaultOutputDevice() throws -> AudioObjectID {
-    let device = readScalar(AudioObjectID(kAudioObjectSystemObject), kAudioHardwarePropertyDefaultSystemOutputDevice, as: AudioObjectID.self, default: kAudioObjectUnknown)
-    if device == kAudioObjectUnknown { throw CoreAudioError(status: -1, action: "find default output device") }
-    return device
 }

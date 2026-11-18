@@ -20,6 +20,8 @@
   --color-brand-text: var(--brand-text);
   --color-live: var(--live);
   --color-live-soft: var(--live-soft);
+  /* The dev badge (components/dev-badge.tsx). Fixed so it reads the same under every theme, Omarchy's included. */
+  --color-dev: #0066d6;
   --color-faint: var(--faint);
   --color-track: var(--track);
   --color-speaker-1: var(--speaker-1);

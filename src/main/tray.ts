@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import path from 'node:path'
 import type { RecordingState } from '@shared/types'
 import { app, Menu, nativeImage, nativeTheme, Tray } from 'electron'
+import type { DevBuild } from './dev'
 
 /** Menu bar icon: shows whether Oatmeal is recording and offers start/stop. */
 export class AppTray {
@@ -15,6 +16,7 @@ export class AppTray {
 
   constructor(
     iconDir: string,
+    private readonly dev: DevBuild | null,
     private readonly actions: { start(): void; stop(): void; open(): void; installUpdate(): void },
   ) {
     this.template = nativeImage.createFromPath(path.join(iconDir, 'trayTemplate.png'))
@@ -33,7 +35,9 @@ export class AppTray {
 
   private create() {
     this.tray = new Tray(this.idleIcon())
-    this.tray.setToolTip('Oatmeal')
+    this.tray.setToolTip(this.dev ? `Oatmeal (dev${this.dev.branch ? ` · ${this.dev.branch}` : ''})` : 'Oatmeal')
+    // macOS shows the title as text beside the icon, so the dev build is told apart from the installed one at a glance.
+    if (this.dev && process.platform === 'darwin') this.tray.setTitle('DEV')
     this.update(this.state)
   }
 
@@ -69,6 +73,14 @@ export class AppTray {
       else if (state.kind === 'stopping') status = 'Finishing transcript…'
       tray.setContextMenu(
         Menu.buildFromTemplate([
+          ...(this.dev
+            ? [
+                {
+                  label: `Running from source${this.dev.branch ? ` · ${this.dev.branch}` : ''}`,
+                  enabled: false,
+                },
+              ]
+            : []),
           { label: status, enabled: false },
           { type: 'separator' },
           recording
